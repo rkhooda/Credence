@@ -62,9 +62,14 @@ contract DeployAll is Script {
         initialAuditor = vm.envOr("INITIAL_AUDITOR_ADDRESS", deployer);
         initialIssuer = vm.envOr("INITIAL_ISSUER_ADDRESS", deployer);
 
-        initialIssuerName = vm.envOr("INITIAL_ISSUER_NAME", "SIH Demo University");
-        initialIssuerAccreditation = vm.envOr("INITIAL_ISSUER_ACCREDITATION", "SIH-ACCREDITATION");
-        initialIssuerWebsite = vm.envOr("INITIAL_ISSUER_WEBSITE", "https://sih.example");
+        string memory issuerName = vm.envString("INITIAL_ISSUER_NAME");
+        initialIssuerName = bytes(issuerName).length > 0 ? issuerName : "SIH Demo University";
+        
+        string memory issuerAccreditation = vm.envString("INITIAL_ISSUER_ACCREDITATION");
+        initialIssuerAccreditation = bytes(issuerAccreditation).length > 0 ? issuerAccreditation : "SIH-ACCREDITATION";
+        
+        string memory issuerWebsite = vm.envString("INITIAL_ISSUER_WEBSITE");
+        initialIssuerWebsite = bytes(issuerWebsite).length > 0 ? issuerWebsite : "https://sih.example";
 
         vm.startBroadcast(deployerKey);
 

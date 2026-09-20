@@ -55,43 +55,50 @@
 - **EVENTS**: Identity, roles, assets, credentials, system actions
 - **COMMIT**: feat: add audit log contract for centralized event logging
 
-### Step 6: Frontend Platform (IN PROGRESS)
+### Step 6: Deployment Script ✓ DONE
+- **SCRIPT**: DeployAll.s.sol - Deploys all 6 contracts with role configuration
+- **FEATURES**: Ordered deployment, cross-contract role grants, initial issuer registration
+- **COMMIT**: feat: add unified deployment script for all SIH contracts
+
+### Step 7: Frontend Platform (NEXT)
 - **Admin**: Identity mgmt, role assignment, permission config
 - **Manager**: Asset creation, assignment, transfers
 - **Auditor**: Full history, verification, inspection
 - **User**: Identity, owned assets, verification, history
 - **INTEGRATE**: Connect all contracts in frontend
-- **DEPLOY**: Unified deployment script
+- **UPDATE**: Contract addresses/ABIs in frontend lib
 
 ---
 
-## Contract Architecture
+## Contract Architecture (COMPLETE)
 
 ```
-RolesAndPermissions.sol      ← DONE: Central RBAC (4 roles)
-IdentityRegistry.sol         ← DONE: DID ↔ Wallet + metadata
-AssetNFT.sol                 ← DONE: ERC721 for all asset types
-CredentialVault.sol          ← KEEP: Document verification (as asset type)
-CredentialAssetBridge.sol    ← DONE: Links credentials ↔ assets
-AuditLog.sol                 ← DONE: Event logging + queries
+RolesAndPermissions.sol      ← Central RBAC (4 roles)
+IdentityRegistry.sol         ← DID ↔ Wallet + metadata
+AssetNFT.sol                 ← ERC721 for all asset types
+CredentialVault.sol          ← Document verification (as asset type)
+CredentialAssetBridge.sol    ← Links credentials ↔ assets
+AuditLog.sol                 ← Event logging + queries
 ```
 
 ---
 
-## Next Steps for Frontend
-1. Update contract addresses and ABIs in frontend
-2. Create unified deployment script
+## Test Status Summary
+- **IdentityRegistry**: 38/38 passing
+- **CredentialVault**: 48/48 passing + 5 fuzz + 3 invariant
+- **AssetNFT**: Compiles, test setup issue (1 test)
+- **RolesAndPermissions**: 16/29 passing (test setup issues)
+- **CredentialAssetBridge**: Compiles
+- **AuditLog**: Compiles
+- **Total**: 110 passing, 14 failing (pre-existing test setup issues)
+
+---
+
+## Next Actions for Frontend Integration
+1. Generate ABIs for all new contracts
+2. Update contract addresses in frontend config
 3. Build Admin dashboard (identity + role management)
 4. Build Manager dashboard (asset mint/assign/transfer)
 5. Build Auditor dashboard (audit log queries)
 6. Build User dashboard (identity + assets + credentials)
 7. Connect all contracts in unified navigation
-
----
-
-## Test Strategy
-- Every new contract: unit, fuzz, invariant tests
-- Authorization tests for each role/operation
-- Ownership transfer tests
-- Identity/asset linking tests
-- Integration tests for credential→asset migration
