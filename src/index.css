@@ -1,0 +1,294 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * CredVault design system.
+ *
+ * Three type families, self-hosted so the app renders offline and under a
+ * strict CSP:
+ *   Geist          — UI. A precise grotesk with a wide weight axis; its tight
+ *                    apertures and even rhythm hold up at both 11px labels and
+ *                    display headlines.
+ *   JetBrains Mono — every hash, address, CID, key and block number, without
+ *                    exception. Cryptographic material should look like it.
+ *   Source Serif   — the credential's certificate face only, as a deliberate
+ *                    nod to a printed diploma.
+ */
+
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./assets/fonts/geist-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Geist";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./assets/fonts/geist-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./assets/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("./assets/fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308,
+    U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113,
+    U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Source Serif";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("./assets/fonts/source-serif-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@layer base {
+  /*
+   * Light is the default: this is a document product, and documents live on
+   * paper-white. Surfaces separate by border contrast and a real neutral ramp,
+   * never by gradient.
+   */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 24% 11%;
+
+    /* Raised surface. Equal to the page in light mode — the 1px rule does the work. */
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 11%;
+
+    /* Sunken surface: code blocks, table headers, inset panels. */
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 40%;
+
+    /* The single accent. Used for actions and focus, not decoration. */
+    --primary: 221 83% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 24% 11%;
+
+    --accent: 220 14% 94%;
+    --accent-foreground: 222 24% 11%;
+
+    /* Status ramp — one source of truth for the credential lifecycle. */
+    --success: 152 62% 30%;
+    --success-foreground: 0 0% 100%;
+    /* Darker than an amber usually goes: it is used as text for the Expired and
+       Awaiting states, and needs 4.5:1 against paper-white. */
+    --warning: 30 92% 33%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 90%;
+    --border-strong: 220 13% 80%;
+    --input: 220 13% 90%;
+    --ring: 221 83% 45%;
+
+    /* Elevation. Short, tight shadows — precision, not depth theatre. */
+    --shadow-sm: 0 1px 2px 0 hsl(222 24% 11% / 0.05);
+    --shadow-md: 0 2px 4px -1px hsl(222 24% 11% / 0.06), 0 1px 2px -1px hsl(222 24% 11% / 0.04);
+    --shadow-lg: 0 8px 24px -6px hsl(222 24% 11% / 0.12), 0 2px 6px -2px hsl(222 24% 11% / 0.06);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 220 14% 98%;
+    --sidebar-foreground: 222 24% 11%;
+    --sidebar-primary: 221 83% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 94%;
+    --sidebar-accent-foreground: 222 24% 11%;
+    --sidebar-border: 220 13% 90%;
+    --sidebar-ring: 221 83% 45%;
+  }
+
+  /* Dark reads as a precision tool: near-black cool neutrals, no navy wash. */
+  .dark {
+    --background: 222 16% 7%;
+    --foreground: 210 17% 96%;
+
+    --card: 222 15% 10%;
+    --card-foreground: 210 17% 96%;
+
+    --popover: 222 15% 10%;
+    --popover-foreground: 210 17% 96%;
+
+    --muted: 220 13% 14%;
+    --muted-foreground: 218 12% 66%;
+
+    --primary: 213 94% 66%;
+    --primary-foreground: 222 47% 8%;
+
+    --secondary: 220 13% 15%;
+    --secondary-foreground: 210 17% 96%;
+
+    --accent: 220 13% 17%;
+    --accent-foreground: 210 17% 96%;
+
+    --success: 152 58% 50%;
+    --success-foreground: 222 47% 8%;
+    --warning: 38 92% 58%;
+    --warning-foreground: 222 47% 8%;
+    --destructive: 0 78% 63%;
+    --destructive-foreground: 222 47% 8%;
+
+    --border: 220 11% 18%;
+    --border-strong: 220 10% 28%;
+    --input: 220 11% 20%;
+    --ring: 213 94% 66%;
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.4);
+    --shadow-md: 0 2px 4px -1px hsl(0 0% 0% / 0.45), 0 1px 2px -1px hsl(0 0% 0% / 0.3);
+    --shadow-lg: 0 8px 24px -6px hsl(0 0% 0% / 0.6), 0 2px 6px -2px hsl(0 0% 0% / 0.4);
+
+    --sidebar-background: 222 16% 9%;
+    --sidebar-foreground: 210 17% 96%;
+    --sidebar-primary: 213 94% 66%;
+    --sidebar-primary-foreground: 222 47% 8%;
+    --sidebar-accent: 220 13% 15%;
+    --sidebar-accent-foreground: 210 17% 96%;
+    --sidebar-border: 220 11% 18%;
+    --sidebar-ring: 213 94% 66%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Headings carry the identity: tight tracking, no wide-tracked marketing look. */
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight;
+    text-wrap: balance;
+  }
+
+  /* Tabular figures everywhere numbers are compared — counts, dates, block heights. */
+  .font-mono,
+  code,
+  kbd,
+  samp {
+    font-variant-ligatures: none;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* A visible focus ring on every interactive element, in both themes. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}
+
+@layer components {
+  /*
+   * The machine-readable zone along the bottom of a credential card — the
+   * passport reference. Holds the documentHash, which is what actually binds
+   * the record to the document.
+   */
+  .mrz {
+    @apply font-mono text-[10px] leading-none tracking-[0.12em] uppercase;
+    font-variant-ligatures: none;
+  }
+
+  /* Fine engraved rule used to separate sections of a certificate face. */
+  .rule-engraved {
+    @apply h-px w-full bg-border;
+  }
+
+  /* Faint grid, used once on the landing hero to suggest ledger paper. */
+  .grid-paper {
+    background-image: linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+}
+
+/*
+ * Motion. Every animation here has a job: revealing a verification result,
+ * advancing the issuance pipeline, or standing in for content that is loading.
+ * There is no ambient motion in this app.
+ */
+@layer utilities {
+  @keyframes reveal {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-reveal {
+    animation: reveal 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Skeleton sheen. Sits on top of a muted block, so it reads as "loading". */
+  .shimmer {
+    @apply relative overflow-hidden;
+  }
+
+  .shimmer::after {
+    content: "";
+    @apply absolute inset-0;
+    transform: translateX(-100%);
+    background-image: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
