@@ -18,12 +18,19 @@ contract RolesAndPermissionsTest is Test {
 
     bytes32 constant DEFAULT_ADMIN_ROLE = keccak256("DEFAULT_ADMIN_ROLE");
 
+    // Role constants - stored to avoid vm.prank issues with getter calls
+    bytes32 managerRole;
+    bytes32 auditorRole;
+
     function setUp() public {
         roles = new RolesAndPermissions(ADMIN);
 
+        managerRole = roles.MANAGER_ROLE();
+        auditorRole = roles.AUDITOR_ROLE();
+
         vm.startPrank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), MANAGER);
-        roles.grantRole(roles.AUDITOR_ROLE(), AUDITOR);
+        roles.grantRole(managerRole, MANAGER);
+        roles.grantRole(auditorRole, AUDITOR);
         vm.stopPrank();
     }
 
@@ -37,34 +44,34 @@ contract RolesAndPermissionsTest is Test {
     }
 
     function test_ManagerHasOperationalPermissions() public {
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.IdentityCreate));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.IdentityVerify));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.IdentityRevoke));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.IdentitySuspend));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.IdentityUpdateMetadata));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.IdentityCreate));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.IdentityVerify));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.IdentityRevoke));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.IdentitySuspend));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.IdentityUpdateMetadata));
 
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetMint));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetAssign));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetTransfer));
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetUpdateMetadata));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetMint));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetAssign));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetTransfer));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetUpdateMetadata));
 
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.SystemUnpause));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.SystemUnpause));
     }
 
     function test_ManagerLacksAdminPermissions() public {
-        assertFalse(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.RoleGrant));
-        assertFalse(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.RoleRevoke));
-        assertFalse(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.SystemPause));
-        assertFalse(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetBurn));
-        assertFalse(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetForceTransfer));
+        assertFalse(roles.hasPermission(managerRole, RolesAndPermissions.Permission.RoleGrant));
+        assertFalse(roles.hasPermission(managerRole, RolesAndPermissions.Permission.RoleRevoke));
+        assertFalse(roles.hasPermission(managerRole, RolesAndPermissions.Permission.SystemPause));
+        assertFalse(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetBurn));
+        assertFalse(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetForceTransfer));
     }
 
     function test_AuditorHasReadOnlyPermissions() public {
-        assertTrue(roles.hasPermission(roles.AUDITOR_ROLE(), RolesAndPermissions.Permission.AuditReadAll));
+        assertTrue(roles.hasPermission(auditorRole, RolesAndPermissions.Permission.AuditReadAll));
 
-        assertFalse(roles.hasPermission(roles.AUDITOR_ROLE(), RolesAndPermissions.Permission.IdentityCreate));
-        assertFalse(roles.hasPermission(roles.AUDITOR_ROLE(), RolesAndPermissions.Permission.AssetMint));
-        assertFalse(roles.hasPermission(roles.AUDITOR_ROLE(), RolesAndPermissions.Permission.RoleGrant));
+        assertFalse(roles.hasPermission(auditorRole, RolesAndPermissions.Permission.IdentityCreate));
+        assertFalse(roles.hasPermission(auditorRole, RolesAndPermissions.Permission.AssetMint));
+        assertFalse(roles.hasPermission(auditorRole, RolesAndPermissions.Permission.RoleGrant));
     }
 
     function test_UserHasNoSpecialPermissions() public {
@@ -79,50 +86,50 @@ contract RolesAndPermissionsTest is Test {
 
     function test_AdminCanGrantManagerRole() public {
         vm.prank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), USER1);
-        assertTrue(roles.hasRole(roles.MANAGER_ROLE(), USER1));
+        roles.grantRole(managerRole, USER1);
+        assertTrue(roles.hasRole(managerRole, USER1));
     }
 
     function test_AdminCanGrantAuditorRole() public {
         vm.prank(ADMIN);
-        roles.grantRole(roles.AUDITOR_ROLE(), USER1);
-        assertTrue(roles.hasRole(roles.AUDITOR_ROLE(), USER1));
+        roles.grantRole(auditorRole, USER1);
+        assertTrue(roles.hasRole(auditorRole, USER1));
     }
 
     function test_AdminCanRevokeRole() public {
         vm.startPrank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), USER1);
-        assertTrue(roles.hasRole(roles.MANAGER_ROLE(), USER1));
+        roles.grantRole(managerRole, USER1);
+        assertTrue(roles.hasRole(managerRole, USER1));
 
-        roles.revokeRole(roles.MANAGER_ROLE(), USER1);
-        assertFalse(roles.hasRole(roles.MANAGER_ROLE(), USER1));
+        roles.revokeRole(managerRole, USER1);
+        assertFalse(roles.hasRole(managerRole, USER1));
         vm.stopPrank();
     }
 
     function test_GrantRole_EmitsRoleAssignedEvent() public {
         vm.expectEmit(true, true, false, true);
-        emit RolesAndPermissions.RoleAssigned(roles.MANAGER_ROLE(), USER1, ADMIN);
+        emit RolesAndPermissions.RoleAssigned(managerRole, USER1, ADMIN);
 
         vm.prank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), USER1);
+        roles.grantRole(managerRole, USER1);
     }
 
     function test_RevokeRole_EmitsRoleRemovedEvent() public {
         vm.startPrank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), USER1);
+        roles.grantRole(managerRole, USER1);
         vm.stopPrank();
 
         vm.expectEmit(true, true, false, true);
-        emit RolesAndPermissions.RoleRemoved(roles.MANAGER_ROLE(), USER1, ADMIN);
+        emit RolesAndPermissions.RoleRemoved(managerRole, USER1, ADMIN);
 
         vm.prank(ADMIN);
-        roles.revokeRole(roles.MANAGER_ROLE(), USER1);
+        roles.revokeRole(managerRole, USER1);
     }
 
     function test_RevertWhen_GrantingToZeroAddress() public {
         vm.expectRevert(RolesAndPermissions.ZeroAddress.selector);
         vm.prank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), address(0));
+        roles.grantRole(managerRole, address(0));
     }
 
     function test_RevertWhen_GrantingUnsupportedRole() public {
@@ -141,16 +148,16 @@ contract RolesAndPermissionsTest is Test {
 
     function test_GetRoleMembers_ReturnsCorrectMembers() public {
         vm.startPrank(ADMIN);
-        roles.grantRole(roles.MANAGER_ROLE(), USER1);
-        roles.grantRole(roles.MANAGER_ROLE(), USER2);
+        roles.grantRole(managerRole, USER1);
+        roles.grantRole(managerRole, USER2);
         vm.stopPrank();
 
-        address[] memory managers = roles.getRoleMembers(roles.MANAGER_ROLE());
+        address[] memory managers = roles.getRoleMembers(managerRole);
         assertEq(managers.length, 3);
     }
 
     function test_GetRolePermissions_ReturnsMatrix() public {
-        bool[16] memory perms = roles.getRolePermissions(roles.MANAGER_ROLE());
+        bool[16] memory perms = roles.getRolePermissions(managerRole);
         assertTrue(perms[uint256(RolesAndPermissions.Permission.IdentityCreate)]);
         assertTrue(perms[uint256(RolesAndPermissions.Permission.AssetMint)]);
         assertFalse(perms[uint256(RolesAndPermissions.Permission.RoleGrant)]);
@@ -258,29 +265,29 @@ contract RolesAndPermissionsTest is Test {
 
     function test_AdminCanGrantPermissionToRole() public {
         vm.prank(ADMIN);
-        roles.grantPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetBurn);
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetBurn));
+        roles.grantPermission(managerRole, RolesAndPermissions.Permission.AssetBurn);
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetBurn));
     }
 
     function test_AdminCanRevokePermissionFromRole() public {
-        assertTrue(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetMint));
+        assertTrue(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetMint));
 
         vm.prank(ADMIN);
-        roles.revokePermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetMint);
+        roles.revokePermission(managerRole, RolesAndPermissions.Permission.AssetMint);
 
-        assertFalse(roles.hasPermission(roles.MANAGER_ROLE(), RolesAndPermissions.Permission.AssetMint));
+        assertFalse(roles.hasPermission(managerRole, RolesAndPermissions.Permission.AssetMint));
     }
 
     function test_RevertWhen_RevokeAdminPermission() public {
         vm.expectRevert(RolesAndPermissions.PermissionDenied.selector);
         vm.prank(ADMIN);
-        roles.revokePermission(DEFAULT_ADMIN_ROLE, RolesAndPermissions.Permission.RoleGrant);
+        roles.revokePermission(keccak256("DEFAULT_ADMIN_ROLE"), RolesAndPermissions.Permission.RoleGrant);
     }
 
     function test_RevertWhen_NonAdminGrantsPermission() public {
         vm.expectRevert(RolesAndPermissions.PermissionDenied.selector);
         vm.prank(MANAGER);
-        roles.grantPermission(roles.AUDITOR_ROLE(), RolesAndPermissions.Permission.AuditReadAll);
+        roles.grantPermission(auditorRole, RolesAndPermissions.Permission.AuditReadAll);
     }
 
     // --- Deployment Guards ---
