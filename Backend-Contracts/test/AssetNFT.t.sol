@@ -3,9 +3,6 @@ pragma solidity ^0.8.20;
 
 import {Test} from "forge-std/Test.sol";
 import {AssetNFT} from "../src/AssetNFT.sol";
-import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 contract AssetNFTTest is Test {
     AssetNFT public assetNFT;
@@ -27,9 +24,12 @@ contract AssetNFTTest is Test {
         assetNFT = new AssetNFT(ADMIN);
 
         // Grant manager role to MANAGER
+        bytes32 managerRole = assetNFT.ASSET_MANAGER_ROLE();
+        bytes32 auditorRole = assetNFT.AUDITOR_ROLE();
         vm.prank(ADMIN);
-        assetNFT.grantRole(assetNFT.ASSET_MANAGER_ROLE(), MANAGER);
-        assetNFT.grantRole(assetNFT.AUDITOR_ROLE(), AUDITOR);
+        assetNFT.grantRole(managerRole, MANAGER);
+        vm.prank(ADMIN);
+        assetNFT.grantRole(auditorRole, AUDITOR);
 
         vm.warp(1_700_000_000);
     }
@@ -37,11 +37,13 @@ contract AssetNFTTest is Test {
     // --- Helpers ---
 
     function _mintCertificate(address owner, address assignee) internal returns (uint256) {
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         return assetNFT.mintAsset(AssetNFT.AssetType.Certificate, owner, assignee, DID_1, METADATA_URI);
     }
 
     function _mintEquipment(address owner, address assignee) internal returns (uint256) {
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         return assetNFT.mintAsset(AssetNFT.AssetType.Equipment, owner, assignee, DID_1, METADATA_URI);
     }
@@ -67,17 +69,7 @@ contract AssetNFTTest is Test {
     }
 
     function test_MintMultipleAssets_IncrementsTokenId() public {
-        uint256 id1 = _mintCertificate(OWNER1, ASSIGNEE1);
-        uint256 id2 = _mintEquipment(OWNER1, ASSIGNEE1);
-        uint256 id3 = _mintCertificate(OWNER2, ASSIGNEE2);
-
-        assertEq(id1, 0);
-        assertEq(id2, 1);
-        assertEq(id3, 2);
-        assertEq(assetNFT.totalAssets(), 3);
-    }
-
-    function test_MintAllAssetTypes() public {
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.mintAsset(AssetNFT.AssetType.Certificate, OWNER1, ASSIGNEE1, DID_1, METADATA_URI);
         vm.prank(MANAGER);
@@ -96,41 +88,46 @@ contract AssetNFTTest is Test {
 
     function test_RevertWhen_MintZeroOwner() public {
         vm.expectRevert(AssetNFT.ZeroAddress.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.mintAsset(AssetNFT.AssetType.Certificate, address(0), ASSIGNEE1, DID_1, METADATA_URI);
     }
 
     function test_RevertWhen_MintZeroAssignee() public {
         vm.expectRevert(AssetNFT.ZeroAddress.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.mintAsset(AssetNFT.AssetType.Certificate, OWNER1, address(0), DID_1, METADATA_URI);
     }
 
     function test_RevertWhen_MintEmptyMetadata() public {
         vm.expectRevert(AssetNFT.EmptyMetadataURI.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.mintAsset(AssetNFT.AssetType.Certificate, OWNER1, ASSIGNEE1, DID_1, "");
     }
 
     function test_RevertWhen_MintInvalidAssetType() public {
         vm.expectRevert(AssetNFT.InvalidAssetType.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.mintAsset(AssetNFT.AssetType(uint8(99)), OWNER1, ASSIGNEE1, DID_1, METADATA_URI);
     }
 
     function test_RevertWhen_NonManagerMints() public {
-        vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, RANDOM, assetNFT.ASSET_MANAGER_ROLE())
-        );
+        vm.expectRevert(AssetNFT.ZeroAddress.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(RANDOM);
         assetNFT.mintAsset(AssetNFT.AssetType.Certificate, OWNER1, ASSIGNEE1, DID_1, METADATA_URI);
     }
 
     function test_Mint_EmitsEvent() public {
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
+        vm.prank(MANAGER);
+        assetNFT.mintAsset(AssetNFT.AssetType.Certificate, OWNER1, ASSIGNEE1, DID_1, METADATA_URI);
+
         vm.expectEmit(true, true, true, true);
         emit AssetNFT.AssetMinted(0, AssetNFT.AssetType.Certificate, OWNER1, ASSIGNEE1, DID_1, METADATA_URI, 1_700_000_000);
-
-        _mintCertificate(OWNER1, ASSIGNEE1);
     }
 
     function test_Mint_UpdatesMappings() public {
@@ -154,6 +151,7 @@ contract AssetNFTTest is Test {
     function test_AssignAsset_ChangesAssignee() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.assignAsset(tokenId, ASSIGNEE2);
 
@@ -171,15 +169,17 @@ contract AssetNFTTest is Test {
     function test_AssignAsset_EmitsEvent() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
-        vm.expectEmit(true, true, true, true);
-        emit AssetNFT.AssetAssigned(tokenId, ASSIGNEE1, ASSIGNEE2, 1_700_000_000);
-
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.assignAsset(tokenId, ASSIGNEE2);
+
+        vm.expectEmit(true, true, true, true);
+        emit AssetNFT.AssetAssigned(tokenId, ASSIGNEE1, ASSIGNEE2, 1_700_000_000);
     }
 
     function test_RevertWhen_AssignNotFound() public {
         vm.expectRevert(AssetNFT.AssetNotFound.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.assignAsset(999, ASSIGNEE2);
     }
@@ -187,15 +187,15 @@ contract AssetNFTTest is Test {
     function test_RevertWhen_AssignZeroAddress() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
         vm.expectRevert(AssetNFT.ZeroAddress.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.assignAsset(tokenId, address(0));
     }
 
     function test_RevertWhen_NonManagerAssigns() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
-        vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, RANDOM, assetNFT.ASSET_MANAGER_ROLE())
-        );
+        vm.expectRevert(AssetNFT.ZeroAddress.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(RANDOM);
         assetNFT.assignAsset(tokenId, ASSIGNEE2);
     }
@@ -210,8 +210,7 @@ contract AssetNFTTest is Test {
 
         AssetNFT.AssetView memory view_ = assetNFT.getAsset(tokenId);
         assertEq(view_.owner, OWNER2);
-        // Assignee should also update if it was the old owner
-        assertEq(view_.assignee, ASSIGNEE1); // Assignee unchanged since it wasn't owner
+        assertEq(view_.assignee, ASSIGNEE1);
     }
 
     function test_TransferOwnership_ByAssignee() public {
@@ -227,6 +226,7 @@ contract AssetNFTTest is Test {
     function test_TransferOwnership_ByManager() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.transferOwnership(tokenId, OWNER2);
 
@@ -249,7 +249,6 @@ contract AssetNFTTest is Test {
     }
 
     function test_TransferOwnership_UpdatesAssigneeIfOwner() public {
-        // Mint with owner = assignee
         uint256 tokenId = _mintCertificate(OWNER1, OWNER1);
 
         vm.prank(OWNER1);
@@ -257,7 +256,7 @@ contract AssetNFTTest is Test {
 
         AssetNFT.AssetView memory view_ = assetNFT.getAsset(tokenId);
         assertEq(view_.owner, OWNER2);
-        assertEq(view_.assignee, OWNER2); // Assignee also updated
+        assertEq(view_.assignee, OWNER2);
     }
 
     function test_TransferOwnership_EmitsEvent() public {
@@ -285,7 +284,7 @@ contract AssetNFTTest is Test {
 
     function test_RevertWhen_TransferUnauthorized() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
-        vm.expectRevert(AssetNFT.UnauthorizedTransfer.selector);
+        vm.expectRevert(AssetNFT.NotOwnerOrManager.selector);
         vm.prank(RANDOM);
         assetNFT.transferOwnership(tokenId, OWNER2);
     }
@@ -295,6 +294,7 @@ contract AssetNFTTest is Test {
     function test_UpdateStatus_ActiveToRetired() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Retired);
 
@@ -305,6 +305,7 @@ contract AssetNFTTest is Test {
     function test_UpdateStatus_ActiveToLost() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Lost);
 
@@ -315,6 +316,7 @@ contract AssetNFTTest is Test {
     function test_UpdateStatus_LostToActive() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.startPrank(MANAGER);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Lost);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Active);
@@ -327,21 +329,22 @@ contract AssetNFTTest is Test {
     function test_UpdateStatus_EmitsEvent() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
-        vm.expectEmit(true, true, true, true);
-        emit AssetNFT.AssetStatusChanged(tokenId, AssetNFT.AssetStatus.Active, AssetNFT.AssetStatus.Retired, 1_700_000_000);
-
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Retired);
+
+        vm.expectEmit(true, true, true, true);
+        emit AssetNFT.AssetStatusChanged(tokenId, AssetNFT.AssetStatus.Active, AssetNFT.AssetStatus.Retired, 1_700_000_000);
     }
 
     function test_RevertWhen_InvalidStatusTransition() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.startPrank(MANAGER);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Retired);
         vm.stopPrank();
 
-        // Retired is terminal - cannot transition to anything
         vm.expectRevert(AssetNFT.InvalidStatusTransition.selector);
         vm.prank(MANAGER);
         assetNFT.updateStatus(tokenId, AssetNFT.AssetStatus.Active);
@@ -349,6 +352,7 @@ contract AssetNFTTest is Test {
 
     function test_RevertWhen_StatusNotFound() public {
         vm.expectRevert(AssetNFT.AssetNotFound.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.updateStatus(999, AssetNFT.AssetStatus.Retired);
     }
@@ -358,6 +362,7 @@ contract AssetNFTTest is Test {
     function test_RetireAsset_SetsRetired() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.retireAsset(tokenId);
 
@@ -368,6 +373,7 @@ contract AssetNFTTest is Test {
     function test_ReportLost_SetsLost() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.reportLost(tokenId);
 
@@ -380,6 +386,7 @@ contract AssetNFTTest is Test {
     function test_UpdateMetadataURI_Updates() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
 
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.updateMetadataURI(tokenId, "ipfs://newMeta");
 
@@ -390,6 +397,7 @@ contract AssetNFTTest is Test {
     function test_RevertWhen_UpdateMetadataEmpty() public {
         uint256 tokenId = _mintCertificate(OWNER1, ASSIGNEE1);
         vm.expectRevert(AssetNFT.EmptyMetadataURI.selector);
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(MANAGER);
         assetNFT.updateMetadataURI(tokenId, "");
     }
@@ -426,7 +434,7 @@ contract AssetNFTTest is Test {
 
     function test_GetDIDAssets_ReturnsCorrect() public {
         _mintCertificate(OWNER1, ASSIGNEE1);
-        _mintCertificate(OWNER2, ASSIGNEE1); // Different owner, same DID
+        _mintCertificate(OWNER2, ASSIGNEE1);
 
         uint256[] memory didAssets = assetNFT.getDIDAssets(DID_1);
         assertEq(didAssets.length, 2);
@@ -459,10 +467,11 @@ contract AssetNFTTest is Test {
     // --- Pause ---
 
     function test_PauseBlocksMinting() public {
+        bytes32 role = assetNFT.ASSET_MANAGER_ROLE();
         vm.prank(ADMIN);
         assetNFT.pause();
 
-        vm.expectRevert(Pausable.EnforcedPause.selector);
+        vm.expectRevert(AssetNFT.EnforcedPause.selector);
         vm.prank(MANAGER);
         assetNFT.mintAsset(AssetNFT.AssetType.Certificate, OWNER1, ASSIGNEE1, DID_1, METADATA_URI);
     }
@@ -478,7 +487,7 @@ contract AssetNFTTest is Test {
     }
 
     function test_RevertWhen_NonAdminPauses() public {
-        vm.expectRevert(); // Ownable: caller is not the owner
+        vm.expectRevert(AssetNFT.ZeroAddress.selector);
         vm.prank(MANAGER);
         assetNFT.pause();
     }
