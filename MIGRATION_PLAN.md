@@ -49,17 +49,19 @@
 - **UNIFIES**: Single query interface for credential + asset
 - **COMMIT**: feat: add credential-asset bridge for document integration
 
-### Step 5: Audit History (IN PROGRESS)
-- **NEW**: AuditLog.sol - Centralized event logging + query helpers
-- **EVENTS**: Identity, roles, assets, ownership, credentials, permissions
-- **QUERIES**: Filter by actor, action, target, time range
-- **FRONTEND**: Auditor dashboard with filterable history
+### Step 5: Audit History ✓ DONE
+- **CONTRACT**: AuditLog.sol - Centralized event logging + query helpers
+- **FEATURES**: Structured logging, indexes by actor/target/category/hash, filtered queries
+- **EVENTS**: Identity, roles, assets, credentials, system actions
+- **COMMIT**: feat: add audit log contract for centralized event logging
 
-### Step 6: Frontend Platform
+### Step 6: Frontend Platform (IN PROGRESS)
 - **Admin**: Identity mgmt, role assignment, permission config
 - **Manager**: Asset creation, assignment, transfers
 - **Auditor**: Full history, verification, inspection
 - **User**: Identity, owned assets, verification, history
+- **INTEGRATE**: Connect all contracts in frontend
+- **DEPLOY**: Unified deployment script
 
 ---
 
@@ -71,8 +73,19 @@ IdentityRegistry.sol         ← DONE: DID ↔ Wallet + metadata
 AssetNFT.sol                 ← DONE: ERC721 for all asset types
 CredentialVault.sol          ← KEEP: Document verification (as asset type)
 CredentialAssetBridge.sol    ← DONE: Links credentials ↔ assets
-AuditLog.sol                 ← IN PROGRESS: Event logging + queries
+AuditLog.sol                 ← DONE: Event logging + queries
 ```
+
+---
+
+## Next Steps for Frontend
+1. Update contract addresses and ABIs in frontend
+2. Create unified deployment script
+3. Build Admin dashboard (identity + role management)
+4. Build Manager dashboard (asset mint/assign/transfer)
+5. Build Auditor dashboard (audit log queries)
+6. Build User dashboard (identity + assets + credentials)
+7. Connect all contracts in unified navigation
 
 ---
 
