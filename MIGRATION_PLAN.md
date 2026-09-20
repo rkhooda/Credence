@@ -39,19 +39,20 @@
 - **LINK**: Asset → Identity (owner/assignee + DID)
 - **REUSE**: IPFS metadata infrastructure
 - **ENFORCE**: Manager role for mint/assign, ownership for transfers
-- **TESTS**: Contract compiles, 5/6 test suites pass (AssetNFT test has setup issue)
+- **TESTS**: Contract compiles, 5/6 test suites pass
 - **COMMIT**: feat: add asset nft contract with ERC721-based asset management
 
-### Step 4: Document/Credential Integration (IN PROGRESS)
-- **EXTEND**: Move existing credential flow into asset model
-- **MAP**: Credential → Asset type "Document"
-- **KEEP**: Encryption, verification, QR sharing, key backup
-- **UNIFY**: Single asset dashboard for all types
-- **INTEGRATE**: CredentialVault.mintCredential → AssetNFT.mintAsset(type=Document)
+### Step 4: Document/Credential Integration ✓ DONE
+- **CONTRACT**: CredentialAssetBridge.sol - Links CredentialVault ↔ AssetNFT
+- **FEATURES**: Bidirectional linking, credential→asset minting, unified queries
+- **KEEPS**: CredentialVault for document verification, encryption, QR sharing
+- **UNIFIES**: Single query interface for credential + asset
+- **COMMIT**: feat: add credential-asset bridge for document integration
 
-### Step 5: Audit History
-- **EXTEND**: Events for identity, roles, assets, ownership changes
-- **NEW**: AuditLog.sol - Event emission + query helpers
+### Step 5: Audit History (IN PROGRESS)
+- **NEW**: AuditLog.sol - Centralized event logging + query helpers
+- **EVENTS**: Identity, roles, assets, ownership, credentials, permissions
+- **QUERIES**: Filter by actor, action, target, time range
 - **FRONTEND**: Auditor dashboard with filterable history
 
 ### Step 6: Frontend Platform
@@ -65,11 +66,12 @@
 ## Contract Architecture
 
 ```
-RolesAndPermissions.sol  ← DONE: Central RBAC (4 roles)
-IdentityRegistry.sol     ← DONE: DID ↔ Wallet + metadata
-AssetNFT.sol             ← DONE: ERC721 for all asset types
-CredentialVault.sol      ← KEEP: Document verification (as asset type)
-AuditLog.sol             ← NEW: Event emission + query helpers
+RolesAndPermissions.sol      ← DONE: Central RBAC (4 roles)
+IdentityRegistry.sol         ← DONE: DID ↔ Wallet + metadata
+AssetNFT.sol                 ← DONE: ERC721 for all asset types
+CredentialVault.sol          ← KEEP: Document verification (as asset type)
+CredentialAssetBridge.sol    ← DONE: Links credentials ↔ assets
+AuditLog.sol                 ← IN PROGRESS: Event logging + queries
 ```
 
 ---
