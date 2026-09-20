@@ -19,19 +19,24 @@
 
 ## Migration Steps
 
-### Step 1: Identity Layer ✓ (Foundation exists - extend)
-- **KEEP**: Wallet connection, key derivation, local key storage
-- **EXTEND**: Add IdentityRegistry contract mapping DID → wallet + metadata
-- **NEW**: DID document structure, identity verification, wallet binding
+### Step 1: Identity Layer ✓ DONE
+- **CONTRACT**: IdentityRegistry.sol - DID ↔ Wallet + metadata
+- **FEATURES**: Create, verify, revoke, suspend identities; bind/unbind wallets; metadata URI
+- **TESTS**: 38 tests passing
+- **COMMIT**: feat: add identity registry contract with DID management
 
-### Step 2: Roles & Permissions
-- **REBUILD**: Replace 2-role system with 4-role RBAC
-- **CONTRACT**: AccessControl with Admin, Manager, Auditor, User roles
+### Step 2: Roles & Permissions (IN PROGRESS)
+- **NEW**: RolesAndPermissions.sol - Central RBAC for 4 roles
+- **ROLES**:
+  - Admin: Full system control, role assignment, contract pause
+  - Manager: Asset creation, assignment, transfer; identity verification
+  - Auditor: Read-only access to all data, audit history, verification
+  - User: View own identity, owned assets, verify ownership
 - **ENFORCE**: All critical operations protected by smart contract checks
-- **FRONTEND**: Role-aware navigation and dashboards
+- **INTEGRATE**: IdentityRegistry, AssetNFT, CredentialVault use this RBAC
 
 ### Step 3: Asset/NFT System
-- **NEW**: AssetNFT contract (ERC721-based)
+- **NEW**: AssetNFT.sol (ERC721-based)
 - **FEATURES**: Mint, metadata, ownership, transfer, burn
 - **TYPES**: Certificate, Document, Equipment, Device, License, Other
 - **LINK**: Asset → Identity (owner/assignee)
@@ -45,7 +50,7 @@
 
 ### Step 5: Audit History
 - **EXTEND**: Events for identity, roles, assets, ownership changes
-- **NEW**: Audit log contract or comprehensive event indexing
+- **NEW**: AuditLog.sol - Event emission + query helpers
 - **FRONTEND**: Auditor dashboard with filterable history
 
 ### Step 6: Frontend Platform
@@ -59,8 +64,8 @@
 ## Contract Architecture
 
 ```
-IdentityRegistry.sol     ← NEW: DID ↔ Wallet + metadata
-AccessControl.sol        ← EXTEND: 4 roles with permissions
+RolesAndPermissions.sol  ← NEW: Central RBAC (4 roles)
+IdentityRegistry.sol     ← DONE: DID ↔ Wallet + metadata
 AssetNFT.sol             ← NEW: ERC721 for all asset types
 CredentialVault.sol      ← KEEP: Document verification (as asset type)
 AuditLog.sol             ← NEW: Event emission + query helpers
