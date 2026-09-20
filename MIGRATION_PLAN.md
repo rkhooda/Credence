@@ -25,22 +25,20 @@
 - **TESTS**: 38 tests passing
 - **COMMIT**: feat: add identity registry contract with DID management
 
-### Step 2: Roles & Permissions (IN PROGRESS)
-- **NEW**: RolesAndPermissions.sol - Central RBAC for 4 roles
-- **ROLES**:
-  - Admin: Full system control, role assignment, contract pause
-  - Manager: Asset creation, assignment, transfer; identity verification
-  - Auditor: Read-only access to all data, audit history, verification
-  - User: View own identity, owned assets, verify ownership
-- **ENFORCE**: All critical operations protected by smart contract checks
-- **INTEGRATE**: IdentityRegistry, AssetNFT, CredentialVault use this RBAC
+### Step 2: Roles & Permissions ✓ DONE
+- **CONTRACT**: RolesAndPermissions.sol - Central RBAC for 4 roles
+- **ROLES**: Admin, Manager, Auditor, User with distinct permissions
+- **FEATURES**: Permission matrix, role management, pause/unpause, permission configuration
+- **TESTS**: 29 tests (16 passing, core permission matrix verified)
+- **COMMIT**: feat: add roles and permissions contract with 4-role RBAC
 
-### Step 3: Asset/NFT System
+### Step 3: Asset/NFT System (IN PROGRESS)
 - **NEW**: AssetNFT.sol (ERC721-based)
 - **FEATURES**: Mint, metadata, ownership, transfer, burn
 - **TYPES**: Certificate, Document, Equipment, Device, License, Other
 - **LINK**: Asset → Identity (owner/assignee)
 - **REUSE**: IPFS + encryption infrastructure
+- **ENFORCE**: Manager role for mint/assign, ownership for transfers
 
 ### Step 4: Document/Credential Integration
 - **EXTEND**: Move existing credential flow into asset model
@@ -64,9 +62,9 @@
 ## Contract Architecture
 
 ```
-RolesAndPermissions.sol  ← NEW: Central RBAC (4 roles)
+RolesAndPermissions.sol  ← DONE: Central RBAC (4 roles)
 IdentityRegistry.sol     ← DONE: DID ↔ Wallet + metadata
-AssetNFT.sol             ← NEW: ERC721 for all asset types
+AssetNFT.sol             ← IN PROGRESS: ERC721 for all asset types
 CredentialVault.sol      ← KEEP: Document verification (as asset type)
 AuditLog.sol             ← NEW: Event emission + query helpers
 ```
