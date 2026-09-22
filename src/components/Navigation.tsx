@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Copy, ExternalLink, LogOut, Menu } from "lucide-react";
+import { Copy, ExternalLink, LogOut, Menu, Shield, UserCog, BadgeCheck, LayoutDashboard } from "lucide-react";
 import metaMaskLogo from "@/assets/MetaMask-logo.png";
 import { LogoMark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -17,23 +17,33 @@ import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { useCopy } from "@/hooks/use-copy";
 import { chainName, useWallet, type WalletRole } from "@/hooks/use-wallet";
-import { CHAIN_ID, ensureSepolia } from "@/lib/contract";
+import { useSihContext, roleLabel, roleColorClasses } from "@/hooks/use-sih";
+import { CHAIN_ID, ensureSepolia, isSihPlatformConfigured } from "@/lib/contract";
 import { cn } from "@/lib/utils";
 import { explorerAddressUrl, truncateMiddle } from "@/utils/format";
 
-const NAV_ITEMS = [
+const LEGACY_NAV_ITEMS = [
   { path: "/", label: "Home", match: (p: string) => p === "/" },
   { path: "/verify", label: "Verify", match: (p: string) => p === "/verify" },
   { path: "/student-portal", label: "Students", match: (p: string) => p.startsWith("/student") },
   { path: "/institution-portal", label: "Institutions", match: (p: string) => p.startsWith("/institution") },
 ];
 
-/** Which section of the app the current route belongs to, if any. */
+const SIH_NAV_ITEMS = [
+  { path: "/admin", label: "Admin", icon: Shield, match: (p: string) => p.startsWith("/admin") },
+  { path: "/manager", label: "Manager", icon: UserCog, match: (p: string) => p.startsWith("/manager") },
+  { path: "/auditor", label: "Auditor", icon: BadgeCheck, match: (p: string) => p.startsWith("/auditor") },
+  { path: "/user", label: "User", icon: LayoutDashboard, match: (p: string) => p.startsWith("/user") },
+];
+
+/** Which legacy portal section the current route belongs to, if any. */
 function roleForPath(pathname: string): WalletRole | null {
   if (pathname.startsWith("/institution")) return "institution";
   if (pathname.startsWith("/student")) return "student";
   return null;
 }
+
+type SihRole = "admin" | "manager" | "auditor" | "user";
 
 function NetworkPill({
   chainId,
@@ -46,8 +56,6 @@ function NetworkPill({
 }) {
   const base = "items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs";
 
-  // No injected wallet, or its chain is not readable yet: say nothing rather
-  // than accuse the user of being on the wrong network.
   if (chainId === null) return null;
 
   if (chainId === CHAIN_ID) {
@@ -59,7 +67,6 @@ function NetworkPill({
     );
   }
 
-  // Off Sepolia every write reverts, so this is an action, not a label.
   return (
     <button
       type="button"
@@ -83,8 +90,11 @@ export function Navigation() {
   const { copied, copy } = useCopy();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const role = roleForPath(location.pathname);
-  const { address, chainId, disconnect } = useWallet(role);
+  const legacyRole = roleForPath(location.pathname);
+  const { address, chainId, disconnect } = useWallet(legacyRole);
+
+  // SIH context (identity + role from blockchain)
+  const { role: sihRoleInfo, identity, isConfigured, loading: sihLoading } = useSihContext(legacyRole);
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
 
@@ -102,7 +112,7 @@ export function Navigation() {
 
   const handleDisconnect = () => {
     disconnect();
-    navigate(role === "institution" ? "/institution-portal" : "/student-portal");
+    navigate(legacyRole === "institution" ? "/institution-portal" : "/student-portal");
   };
 
   return (
@@ -117,24 +127,69 @@ export function Navigation() {
           <span className="text-[17px] font-semibold tracking-tight">CredVault</span>
         </Link>
 
-        {/* Always reachable, on every route — including the dashboards. */}
+        {/* Navigation — switches between legacy and SIH modes based on contract config */}
         <nav aria-label="Main" className="hidden md:flex md:items-center md:gap-1">
-          {NAV_ITEMS.map((item) => {
-            const active = item.match(location.pathname);
-            return (
+          {!isConfigured ? (
+            // Legacy mode: Student / Institution portals
+            LEGACY_NAV_ITEMS.map((item) => {
+              const active = item.match(location.pathname);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "rounded-md px-3 py-1.5 text-sm transition-colors",
+                    active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })
+          ) : (
+            // SIH mode: Role-based dashboards + Verify
+            <>
               <Link
-                key={item.path}
-                to={item.path}
-                aria-current={active ? "page" : undefined}
+                to="/"
+                aria-current={location.pathname === "/" ? "page" : undefined}
                 className={cn(
                   "rounded-md px-3 py-1.5 text-sm transition-colors",
-                  active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                  location.pathname === "/" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {item.label}
+                Home
               </Link>
-            );
-          })}
+              <Link
+                to="/verify"
+                aria-current={location.pathname === "/verify" ? "page" : undefined}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-sm transition-colors",
+                  location.pathname === "/verify" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Verify
+              </Link>
+              {SIH_NAV_ITEMS.map((item) => {
+                const active = item.match(location.pathname);
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "rounded-md px-3 py-1.5 text-sm transition-colors flex items-center gap-1.5",
+                      active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                    {item.label}
+                  </Link>
+                );
+              })}
+            </>
+          )}
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
@@ -142,8 +197,6 @@ export function Navigation() {
             <NetworkPill
               chainId={chainId}
               onSwitch={handleSwitchNetwork}
-              // On a correct chain this is reassurance, not information — it can
-              // wait for a wider viewport. A wrong chain always shows.
               className={chainId === CHAIN_ID ? "hidden sm:inline-flex" : undefined}
             />
           )}
@@ -161,13 +214,29 @@ export function Navigation() {
                 </button>
               </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-72">
+              <DropdownMenuContent align="end" className="w-80">
                 <div className="px-2 py-1.5">
                   <div className="flex items-center gap-2">
                     <img src={metaMaskLogo} alt="" className="h-4 w-4" aria-hidden="true" />
                     <span className="text-xs text-muted-foreground">MetaMask</span>
-                    <span className="ml-auto text-xs capitalize text-muted-foreground">{role}</span>
+                    {isConfigured && !sihLoading && (
+                      <span className={cn("ml-auto px-2 py-0.5 text-[10px] font-medium rounded-full border", roleColorClasses(sihRoleInfo.role))}>
+                        {roleLabel(sihRoleInfo.role)}
+                      </span>
+                    )}
+                    {!isConfigured && legacyRole && (
+                      <span className="ml-auto text-xs capitalize text-muted-foreground">{legacyRole}</span>
+                    )}
                   </div>
+
+                  {identity && (
+                    <div className="mt-2 space-y-1">
+                      <div className="text-xs font-medium text-foreground">{identity.name || "Unnamed Identity"}</div>
+                      <div className="text-xs text-muted-foreground">{identity.email || "No email"}</div>
+                      <div className="text-[10px] text-muted-foreground">DID: {identity.did?.slice(0, 16)}…</div>
+                    </div>
+                  )}
+
                   <code className="mt-2 block break-all rounded bg-muted px-2 py-1.5 font-mono text-[11px] leading-relaxed">
                     {address}
                   </code>
@@ -210,22 +279,65 @@ export function Navigation() {
                 Site navigation and the connected wallet.
               </SheetDescription>
               <nav aria-label="Mobile" className="mt-4 flex flex-col gap-1">
-                {NAV_ITEMS.map((item) => {
-                  const active = item.match(location.pathname);
-                  return (
+                {!isConfigured ? (
+                  LEGACY_NAV_ITEMS.map((item) => {
+                    const active = item.match(location.pathname);
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "rounded-md px-3 py-2.5 text-sm transition-colors",
+                          active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <>
                     <Link
-                      key={item.path}
-                      to={item.path}
-                      aria-current={active ? "page" : undefined}
+                      to="/"
+                      aria-current={location.pathname === "/" ? "page" : undefined}
                       className={cn(
                         "rounded-md px-3 py-2.5 text-sm transition-colors",
-                        active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
+                        location.pathname === "/" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
                       )}
                     >
-                      {item.label}
+                      Home
                     </Link>
-                  );
-                })}
+                    <Link
+                      to="/verify"
+                      aria-current={location.pathname === "/verify" ? "page" : undefined}
+                      className={cn(
+                        "rounded-md px-3 py-2.5 text-sm transition-colors",
+                        location.pathname === "/verify" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
+                      )}
+                    >
+                      Verify
+                    </Link>
+                    {SIH_NAV_ITEMS.map((item) => {
+                      const active = item.match(location.pathname);
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          aria-current={active ? "page" : undefined}
+                          className={cn(
+                            "rounded-md px-3 py-2.5 text-sm transition-colors flex items-center gap-2",
+                            active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden="true" />
+                          {item.label}
+                        </Link>
+                      );
+                    })}
+                  </>
+                )}
               </nav>
 
               {address && (
@@ -234,6 +346,13 @@ export function Navigation() {
                     <Identicon address={address} className="h-5 w-5" />
                     <code className="font-mono text-xs">{truncateMiddle(address, 8, 6)}</code>
                   </div>
+                  {identity && (
+                    <div className="mt-2 space-y-1 text-sm">
+                      <div className="font-medium">{identity.name || "Unnamed Identity"}</div>
+                      <div className="text-muted-foreground">{identity.email || "No email"}</div>
+                      <div className="text-[11px] text-muted-foreground">Role: {roleLabel(sihRoleInfo.role)}</div>
+                    </div>
+                  )}
                   <div className="mt-3">
                     <NetworkPill chainId={chainId} onSwitch={handleSwitchNetwork} />
                   </div>

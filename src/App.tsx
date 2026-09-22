@@ -11,6 +11,11 @@ import InstitutionDashboard from "./pages/InstitutionDashboard";
 import VerifierPage from "./pages/VerifierPage";
 import NotFound from "./pages/NotFound";
 import PortalConnect from "./pages/PortalConnect";
+import AdminDashboard from "./pages/sih/AdminDashboard";
+import ManagerDashboard from "./pages/sih/ManagerDashboard";
+import AuditorDashboard from "./pages/sih/AuditorDashboard";
+import UserDashboard from "./pages/sih/UserDashboard";
+import SihPortalConnect from "./pages/sih/SihPortalConnect";
 
 const queryClient = new QueryClient();
 
@@ -29,12 +34,21 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Landing />} />
 
+                {/* Legacy portals (kept for backwards compatibility) */}
                 <Route path="/student-portal" element={<PortalConnect role="student" />} />
                 <Route path="/student-dashboard" element={<StudentDashboard />} />
 
                 <Route path="/institution-portal" element={<PortalConnect role="institution" />} />
                 <Route path="/institution-dashboard" element={<InstitutionDashboard />} />
 
+                {/* SIH Platform portals */}
+                <Route path="/sih-portal" element={<SihPortalConnect />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/manager" element={<ManagerDashboard />} />
+                <Route path="/auditor" element={<AuditorDashboard />} />
+                <Route path="/user" element={<UserDashboard />} />
+
+                {/* Public verifier (works in both modes) */}
                 <Route path="/verify" element={<VerifierPage />} />
 
                 {/* Keep the catch-all last. */}

@@ -1,0 +1,184 @@
+/**
+ * SIH Platform: Identity & Role Management
+ *
+ * Handles the core wallet → identity → role flow:
+ * 1. Connect wallet
+ * 2. Look up DID from IdentityRegistry
+ * 3. Determine role from RolesAndPermissions
+ * 4. Load appropriate dashboard
+ *
+ * The blockchain is the source of truth for all authorization.
+ */
+import { ethers } from "ethers";
+import { getIdentityRegistryRO, getRolesAndPermissionsRO, isSihPlatformConfigured } from "./contract";
+
+export type SihRole = "admin" | "manager" | "auditor" | "user" | "unregistered";
+
+export interface IdentityInfo {
+  did: string | null;
+  name: string;
+  email: string;
+  kycStatus: number; // 0=none, 1=pending, 2=verified, 3=rejected
+  isActive: boolean;
+  wallets: string[];
+}
+
+export interface RoleInfo {
+  role: SihRole;
+  isAtLeastManager: boolean;
+  isAtLeastAuditor: boolean;
+  isAdmin: boolean;
+  permissions: string[];
+}
+
+/**
+ * Resolves the identity for a connected wallet address.
+ * Returns null if the wallet has no registered identity.
+ */
+export async function resolveIdentity(walletAddress: string): Promise<IdentityInfo | null> {
+  if (!isSihPlatformConfigured()) return null;
+
+  const registry = getIdentityRegistryRO();
+  const checksummed = ethers.getAddress(walletAddress);
+
+  try {
+    // Check if wallet has any DIDs
+    const dids = await registry.getDIDsForWallet(checksummed);
+    if (!dids || dids.length === 0) return null;
+
+    // Use the first (primary) DID
+    const primaryDid = dids[0];
+    const identity = await registry.getIdentity(primaryDid);
+
+    return {
+      did: identity[0],           // did
+      name: identity[1],          // name
+      email: identity[2],         // email
+      kycStatus: Number(identity[3]), // kycStatus
+      isActive: identity[4],      // isActive
+      wallets: identity[5],       // wallets
+    };
+  } catch (err) {
+    console.warn(`Failed to resolve identity for ${walletAddress}:`, err);
+    return null;
+  }
+}
+
+/**
+ * Determines the SIH role for a wallet address by querying RolesAndPermissions.
+ * The blockchain contract is the authority — no localStorage or frontend-only logic.
+ */
+export async function resolveRole(walletAddress: string): Promise<RoleInfo> {
+  if (!isSihPlatformConfigured()) {
+    return { role: "user", isAtLeastManager: false, isAtLeastAuditor: false, isAdmin: false, permissions: [] };
+  }
+
+  const roles = getRolesAndPermissionsRO();
+  const checksummed = ethers.getAddress(walletAddress);
+
+  try {
+    const [isAdmin, isAtLeastManager, isAtLeastAuditor, roleName] = await Promise.all([
+      roles.isAdmin({ from: checksummed }),
+      roles.isAtLeastManager({ from: checksummed }),
+      roles.isAtLeastAuditor({ from: checksummed }),
+      roles.getCallerRoleName({ from: checksummed }),
+    ]);
+
+    let role: SihRole = "user";
+    if (isAdmin) role = "admin";
+    else if (isAtLeastManager) role = "manager";
+    else if (isAtLeastAuditor) role = "auditor";
+    else if (roleName && roleName !== "User") role = roleName.toLowerCase() as SihRole;
+
+    // Fetch permissions for the role
+    const permissions = await getPermissionsForAddress(roles, checksummed);
+
+    return {
+      role,
+      isAtLeastManager,
+      isAtLeastAuditor,
+      isAdmin,
+      permissions,
+    };
+  } catch (err) {
+    console.warn(`Failed to resolve role for ${walletAddress}:`, err);
+    return { role: "user", isAtLeastManager: false, isAtLeastAuditor: false, isAdmin: false, permissions: [] };
+  }
+}
+
+interface RolesContract {
+  Permission?: Record<string, number>;
+  hasPermission: (address: string, permission: number) => Promise<boolean>;
+}
+
+/**
+ * Gets the permission names for a given address by checking all permission constants.
+ */
+async function getPermissionsForAddress(roles: RolesContract, address: string): Promise<string[]> {
+  const permissionNames = [
+    "RoleGrant", "RoleRevoke", "IdentityCreate", "IdentityUpdateMetadata",
+    "IdentityVerify", "IdentitySuspend", "IdentityRevoke",
+    "AssetMint", "AssetBurn", "AssetAssign", "AssetTransfer",
+    "AssetForceTransfer", "AssetUpdateMetadata",
+    "DocumentVerify", "DocumentRevoke",
+    "SystemPause", "SystemUnpause", "AuditReadAll",
+  ];
+
+  const perms: string[] = [];
+  for (const name of permissionNames) {
+    try {
+      const permissionValue = roles.Permission?.[name];
+      if (permissionValue !== undefined) {
+        const hasPerm = await roles.hasPermission(address, permissionValue);
+        if (hasPerm) perms.push(name);
+      }
+    } catch {
+      // Ignore errors for individual permissions
+    }
+  }
+  return perms;
+}
+
+/**
+ * Combined function: wallet → identity → role
+ * This is the main entry point for the SIH platform flow.
+ */
+export async function resolveSihContext(walletAddress: string): Promise<{
+  identity: IdentityInfo | null;
+  role: RoleInfo;
+}> {
+  const [identity, role] = await Promise.all([
+    resolveIdentity(walletAddress),
+    resolveRole(walletAddress),
+  ]);
+
+  return { identity, role };
+}
+
+/**
+ * Human-readable role label for UI display.
+ */
+export function roleLabel(role: SihRole): string {
+  const labels: Record<SihRole, string> = {
+    admin: "Platform Admin",
+    manager: "Manager",
+    auditor: "Auditor",
+    user: "User",
+    unregistered: "Unregistered",
+  };
+  return labels[role] ?? "Unknown";
+}
+
+/**
+ * Role color classes for UI.
+ */
+export function roleColorClasses(role: SihRole): string {
+  const classes: Record<SihRole, string> = {
+    admin: "bg-purple/20 text-purple border-purple/30",
+    manager: "bg-blue/20 text-blue border-blue/30",
+    auditor: "bg-amber/20 text-amber border-amber/30",
+    user: "bg-muted text-muted-foreground border-border",
+    unregistered: "bg-destructive/10 text-destructive border-destructive/20",
+  };
+  return classes[role] ?? "bg-muted text-muted-foreground border-border";
+}
