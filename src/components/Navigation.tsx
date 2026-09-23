@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Copy, ExternalLink, LogOut, Menu, Shield, UserCog, BadgeCheck, LayoutDashboard } from "lucide-react";
+import { ClipboardList, Copy, Database, ExternalLink, LayoutDashboard, LogOut, Menu, Shield } from "lucide-react";
 import metaMaskLogo from "@/assets/MetaMask-logo.png";
 import { LogoMark } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -22,18 +22,17 @@ import { CHAIN_ID, ensureSepolia, isSihPlatformConfigured } from "@/lib/contract
 import { cn } from "@/lib/utils";
 import { explorerAddressUrl, truncateMiddle } from "@/utils/format";
 
-const LEGACY_NAV_ITEMS = [
+const PLATFORM_NAV_ITEMS = [
   { path: "/", label: "Home", match: (p: string) => p === "/" },
   { path: "/verify", label: "Verify", match: (p: string) => p === "/verify" },
-  { path: "/student-portal", label: "Students", match: (p: string) => p.startsWith("/student") },
-  { path: "/institution-portal", label: "Institutions", match: (p: string) => p.startsWith("/institution") },
+  { path: "/sih-portal", label: "Platform access", match: (p: string) => p.startsWith("/sih-portal") },
 ];
 
 const SIH_NAV_ITEMS = [
-  { path: "/admin", label: "Admin", icon: Shield, match: (p: string) => p.startsWith("/admin") },
-  { path: "/manager", label: "Manager", icon: UserCog, match: (p: string) => p.startsWith("/manager") },
-  { path: "/auditor", label: "Auditor", icon: BadgeCheck, match: (p: string) => p.startsWith("/auditor") },
-  { path: "/user", label: "User", icon: LayoutDashboard, match: (p: string) => p.startsWith("/user") },
+  { path: "/user", label: "Overview", icon: LayoutDashboard, match: (p: string) => p.startsWith("/user") },
+  { path: "/manager", label: "Assets", icon: Database, match: (p: string) => p.startsWith("/manager") },
+  { path: "/auditor", label: "Audit", icon: ClipboardList, match: (p: string) => p.startsWith("/auditor") },
+  { path: "/admin", label: "Administration", icon: Shield, match: (p: string) => p.startsWith("/admin") },
 ];
 
 /** Which legacy portal section the current route belongs to, if any. */
@@ -112,7 +111,7 @@ export function Navigation() {
 
   const handleDisconnect = () => {
     disconnect();
-    navigate(legacyRole === "institution" ? "/institution-portal" : "/student-portal");
+    navigate(legacyRole ? (legacyRole === "institution" ? "/institution-portal" : "/student-portal") : "/sih-portal");
   };
 
   return (
@@ -121,17 +120,16 @@ export function Navigation() {
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2 rounded-sm text-foreground"
-          aria-label="CredVault home"
+          aria-label="SIH Control home"
         >
           <LogoMark className="h-6 w-6" />
-          <span className="text-[17px] font-semibold tracking-tight">CredVault</span>
+          <span className="text-[17px] font-semibold tracking-tight">SIH Control</span>
         </Link>
 
         {/* Navigation — switches between legacy and SIH modes based on contract config */}
         <nav aria-label="Main" className="hidden md:flex md:items-center md:gap-1">
           {!isConfigured ? (
-            // Legacy mode: Student / Institution portals
-            LEGACY_NAV_ITEMS.map((item) => {
+            PLATFORM_NAV_ITEMS.map((item) => {
               const active = item.match(location.pathname);
               return (
                 <Link
@@ -148,28 +146,18 @@ export function Navigation() {
               );
             })
           ) : (
-            // SIH mode: Role-based dashboards + Verify
             <>
-              <Link
-                to="/"
-                aria-current={location.pathname === "/" ? "page" : undefined}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm transition-colors",
-                  location.pathname === "/" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Home
-              </Link>
-              <Link
-                to="/verify"
-                aria-current={location.pathname === "/verify" ? "page" : undefined}
-                className={cn(
-                  "rounded-md px-3 py-1.5 text-sm transition-colors",
-                  location.pathname === "/verify" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Verify
-              </Link>
+              {PLATFORM_NAV_ITEMS.map((item) => {
+                const active = item.match(location.pathname);
+                return (
+                  <Link key={item.path} to={item.path} aria-current={active ? "page" : undefined} className={cn(
+                    "rounded-md px-3 py-1.5 text-sm transition-colors",
+                    active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+                  )}>
+                    {item.label}
+                  </Link>
+                );
+              })}
               {SIH_NAV_ITEMS.map((item) => {
                 const active = item.match(location.pathname);
                 const Icon = item.icon;
@@ -280,7 +268,7 @@ export function Navigation() {
               </SheetDescription>
               <nav aria-label="Mobile" className="mt-4 flex flex-col gap-1">
                 {!isConfigured ? (
-                  LEGACY_NAV_ITEMS.map((item) => {
+                  PLATFORM_NAV_ITEMS.map((item) => {
                     const active = item.match(location.pathname);
                     return (
                       <Link
@@ -298,26 +286,17 @@ export function Navigation() {
                   })
                 ) : (
                   <>
-                    <Link
-                      to="/"
-                      aria-current={location.pathname === "/" ? "page" : undefined}
-                      className={cn(
-                        "rounded-md px-3 py-2.5 text-sm transition-colors",
-                        location.pathname === "/" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
-                      )}
-                    >
-                      Home
-                    </Link>
-                    <Link
-                      to="/verify"
-                      aria-current={location.pathname === "/verify" ? "page" : undefined}
-                      className={cn(
-                        "rounded-md px-3 py-2.5 text-sm transition-colors",
-                        location.pathname === "/verify" ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
-                      )}
-                    >
-                      Verify
-                    </Link>
+                    {PLATFORM_NAV_ITEMS.map((item) => {
+                      const active = item.match(location.pathname);
+                      return (
+                        <Link key={item.path} to={item.path} aria-current={active ? "page" : undefined} className={cn(
+                          "rounded-md px-3 py-2.5 text-sm transition-colors",
+                          active ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted",
+                        )}>
+                          {item.label}
+                        </Link>
+                      );
+                    })}
                     {SIH_NAV_ITEMS.map((item) => {
                       const active = item.match(location.pathname);
                       const Icon = item.icon;

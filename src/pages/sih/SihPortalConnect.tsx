@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Building2, Check, ExternalLink, GraduationCap, Loader2, Shield, UserCog, BadgeCheck, LayoutDashboard, ShieldAlert } from "lucide-react";
+import { ArrowRight, Check, ExternalLink, Loader2, Shield, UserCog, BadgeCheck, LayoutDashboard, ShieldAlert } from "lucide-react";
 import metaMaskLogo from "@/assets/MetaMask-logo.png";
 import { LogoMark } from "@/components/Logo";
 import { AddressChip } from "@/components/data/AddressChip";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { WALLET_STORAGE_KEY, chainName, useWallet, type WalletRole } from "@/hooks/use-wallet";
-import { CHAIN_ID, ensureSepolia, getInjectedProvider, getReadOnlyProvider, isSihPlatformConfigured } from "@/lib/contract";
+import { CHAIN_ID, ensureSepolia, getInjectedProvider, isSihPlatformConfigured } from "@/lib/contract";
 import { describeError } from "@/lib/issuance";
 import { resolveSihContext, roleLabel, roleColorClasses } from "@/lib/sih";
 
@@ -76,6 +76,7 @@ export default function SihPortalConnect() {
 
     try {
       setPhase("connecting");
+      let nextRole: keyof typeof SIH_ROLES = "user";
 
       await ethereum.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
       const accounts = (await ethereum.request({ method: "eth_accounts" })) as string[];
@@ -85,27 +86,26 @@ export default function SihPortalConnect() {
       // Resolve SIH context (identity + role from blockchain)
       setPhase("resolving");
       try {
-        const { identity, role } = await resolveSihContext(account);
+        const { role } = await resolveSihContext(account);
         if (role.role === "unregistered" || role.role === "user") {
           // User has no special role, but can still access user dashboard
-          setResolvedRole("user");
+          nextRole = "user";
         } else {
-          setResolvedRole(role.role);
+          nextRole = role.role;
         }
+        setResolvedRole(nextRole);
+        setPhase("switching");
+        await ensureSepolia();
       } catch (err) {
         console.warn("Could not resolve SIH context:", err);
         setError("Could not reach Sepolia to resolve identity and role. Check your connection and try again.");
         return;
       }
 
-      setPhase("switching");
-      await ensureSepolia();
-
       localStorage.setItem(WALLET_STORAGE_KEY.student, account);
       localStorage.setItem(WALLET_STORAGE_KEY.institution, account);
 
-      const targetDashboard = resolvedRole ? SIH_ROLES[resolvedRole].dashboard : "/user";
-      navigate(targetDashboard);
+      navigate(SIH_ROLES[nextRole].dashboard);
     } catch (err) {
       const message = describeError(err);
       if (message === "Rejected in wallet.") {
@@ -128,7 +128,7 @@ export default function SihPortalConnect() {
           <span className="grid h-9 w-9 place-items-center rounded-md border border-border bg-muted">
             <Shield className="h-4.5 w-4.5 text-foreground" aria-hidden="true" />
           </span>
-          <h1 className="text-xl font-semibold tracking-tight">SIH Platform</h1>
+          <h1 className="text-xl font-semibold tracking-tight">SIH Control</h1>
         </div>
 
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
@@ -145,7 +145,7 @@ export default function SihPortalConnect() {
         </div>
 
         <p className="mt-4 text-sm text-muted-foreground">
-          You can still use the legacy Student and Institution portals from the main navigation.
+          Public verification remains available from the main navigation. Platform access will be enabled after the six SIH contracts are configured.
         </p>
       </div>
     );
@@ -157,12 +157,12 @@ export default function SihPortalConnect() {
         <span className="grid h-9 w-9 place-items-center rounded-md border border-border bg-muted">
           <Shield className="h-4.5 w-4.5 text-foreground" aria-hidden="true" />
         </span>
-        <h1 className="text-xl font-semibold tracking-tight">SIH Platform Access</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Platform access</h1>
       </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Connect your wallet to resolve your on-chain identity and role. Your dashboard will be determined by your
-        blockchain-assigned role — no manual selection needed.
+        Connect your wallet to resolve your on-chain identity and role. SIH Control routes you to the workspace your
+        blockchain permissions allow — no manual role selection is needed.
       </p>
 
       {resolvedRole && (() => {
@@ -192,7 +192,7 @@ export default function SihPortalConnect() {
             <span className="grid h-12 w-12 place-items-center rounded-lg border border-border bg-background">
               <LogoMark className="h-6 w-6" />
             </span>
-            <span className="text-[11px] text-muted-foreground">CredVault</span>
+            <span className="text-[11px] text-muted-foreground">SIH Control</span>
           </div>
 
           <span className="mb-6 h-px w-10 bg-border-strong" aria-hidden="true" />
@@ -248,7 +248,7 @@ export default function SihPortalConnect() {
         ) : (
           <div>
             <p className="text-sm text-muted-foreground">
-              This portal needs a browser wallet. MetaMask is the one CredVault is tested against.
+              This portal needs a browser wallet. MetaMask is the supported browser wallet for this deployment.
             </p>
             <Button asChild className="mt-4 w-full">
               <a href={METAMASK_INSTALL_URL} target="_blank" rel="noopener noreferrer">
