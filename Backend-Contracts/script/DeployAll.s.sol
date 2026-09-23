@@ -71,12 +71,20 @@ contract DeployAll is Script {
         string memory issuerWebsite = vm.envOr("INITIAL_ISSUER_WEBSITE", string("https://sih.example"));
         initialIssuerWebsite = issuerWebsite;
 
+        // Every constructor and post-deploy grant below is executed by the
+        // broadcaster. Requiring one admin avoids deploying a system that the
+        // deployer cannot finish configuring.
+        require(admin == deployer, "ADMIN_ADDRESS must match deployer for DeployAll");
+
+        console.log("Chain ID:", block.chainid);
+        console.log("Deployer:", deployer);
+
         vm.startBroadcast(deployerKey);
 
         // 1. Deploy RolesAndPermissions (central RBAC)
         console.log("Deploying RolesAndPermissions...");
         rolesAndPermissions = new RolesAndPermissions(admin);
-        console.log("RolesAndPermissions deployed at:", address(rolesAndPermissions));
+        console.log("RolesAndPermissions:", address(rolesAndPermissions));
 
         // Grant initial roles
         if (initialManager != address(0)) {
@@ -91,16 +99,16 @@ contract DeployAll is Script {
         // 2. Deploy IdentityRegistry
         console.log("Deploying IdentityRegistry...");
         identityRegistry = new IdentityRegistry(admin);
-        console.log("IdentityRegistry deployed at:", address(identityRegistry));
+        console.log("IdentityRegistry:", address(identityRegistry));
 
-        if (initialManager != address(0)) {
-            identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), initialManager);
-        }
+        identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), admin);
+        if (initialManager != address(0)) identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), initialManager);
+        if (initialAuditor != address(0)) identityRegistry.grantRole(identityRegistry.AUDITOR_ROLE(), initialAuditor);
 
         // 3. Deploy AssetNFT
         console.log("Deploying AssetNFT...");
         assetNFT = new AssetNFT(admin);
-        console.log("AssetNFT deployed at:", address(assetNFT));
+        console.log("AssetNFT:", address(assetNFT));
 
         // Grant asset manager role to CredentialAssetBridge (will be deployed next)
         // For now, grant to admin
@@ -116,7 +124,7 @@ contract DeployAll is Script {
         // 4. Deploy CredentialVault
         console.log("Deploying CredentialVault...");
         credentialVault = new CredentialVault(admin);
-        console.log("CredentialVault deployed at:", address(credentialVault));
+        console.log("CredentialVault:", address(credentialVault));
 
         // Register initial issuer
         credentialVault.registerIssuer(initialIssuer, initialIssuerName, initialIssuerAccreditation, initialIssuerWebsite);
@@ -125,7 +133,7 @@ contract DeployAll is Script {
         // 5. Deploy CredentialAssetBridge
         console.log("Deploying CredentialAssetBridge...");
         credentialAssetBridge = new CredentialAssetBridge(admin, credentialVault, assetNFT);
-        console.log("CredentialAssetBridge deployed at:", address(credentialAssetBridge));
+        console.log("CredentialAssetBridge:", address(credentialAssetBridge));
 
         // Grant bridge manager role to admin
         credentialAssetBridge.grantRole(credentialAssetBridge.BRIDGE_MANAGER_ROLE(), admin);
@@ -140,7 +148,10 @@ contract DeployAll is Script {
         // 6. Deploy AuditLog
         console.log("Deploying AuditLog...");
         auditLog = new AuditLog(admin);
-        console.log("AuditLog deployed at:", address(auditLog));
+        console.log("AuditLog:", address(auditLog));
+        if (initialAuditor != address(0)) {
+            auditLog.grantRole(auditLog.AUDITOR_ROLE(), initialAuditor);
+        }
 
         vm.stopBroadcast();
 
@@ -156,5 +167,7 @@ contract DeployAll is Script {
         console.log("Initial Manager:", initialManager);
         console.log("Initial Auditor:", initialAuditor);
         console.log("Initial Issuer:", initialIssuer);
+        console.log("Chain ID:", block.chainid);
+        console.log("Deployer:", deployer);
     }
 }

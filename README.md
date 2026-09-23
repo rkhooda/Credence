@@ -213,13 +213,36 @@ npm run contract:deploy      # needs SEPOLIA_RPC_URL and a funded deployer
 npm run contract:verify      # needs ETHERSCAN_API_KEY and CONTRACT_ADDRESS
 ```
 
-Never put a deployer key in a `.env` file. Use an encrypted Foundry keystore:
+`npm run contract:deploy` runs `DeployAll.s.sol` and deploys the complete SIH
+platform in this order: RolesAndPermissions, IdentityRegistry, AssetNFT,
+CredentialVault, CredentialAssetBridge, AuditLog. It requires `SEPOLIA_RPC_URL`
+and `PRIVATE_KEY`, plus optional `ADMIN_ADDRESS`, `INITIAL_MANAGER_ADDRESS`,
+`INITIAL_AUDITOR_ADDRESS`, and `INITIAL_ISSUER_ADDRESS` values.
+
+`ADMIN_ADDRESS` must match the deployer because the deployment script performs
+the initial role configuration in the same broadcast. The script prints all six
+addresses and Foundry saves the transaction record under
+`Backend-Contracts/broadcast/DeployAll.s.sol/11155111/run-latest.json`.
+
+Use an ignored local environment file or shell exports; never commit a real key.
+
+Example frontend setup after deployment:
 
 ```bash
-cast wallet import deployer --interactive     # once
-forge script DeployVault --root Backend-Contracts \
-  --rpc-url "$SEPOLIA_RPC_URL" --account deployer --broadcast
+cp .env.example .env.local
+# Set VITE_CHAIN_ID and all six VITE_*_ADDRESS values in .env.local.
+npm run dev
 ```
+
+Deployment checklist:
+
+1. Configure `SEPOLIA_RPC_URL` and deployer access.
+2. Fund the deployer with Sepolia ETH.
+3. Run `npm run contract:deploy`.
+4. Capture the six printed contract addresses.
+5. Configure the six `VITE_*_ADDRESS` values in `.env.local` or hosting build settings.
+6. Run `npm run contract:abi`, `npm run build`, and start the frontend.
+7. Connect the Admin wallet and run the SIH identity, asset, credential, and audit smoke test.
 
 ### Authorising another institution
 
@@ -258,16 +281,19 @@ Environment variables to set in the Vercel project:
 | `PINATA_JWT` | server | Pinata key with `pinJSONToIPFS`. Never expose this as a `VITE_` variable. |
 | `ALLOWED_ORIGIN` | server | Locks the pinning proxy to your own origin. Defaults to `*`, which lets anyone spend your Pinata quota. |
 | `VITE_PIN_ENDPOINT` | build | Defaults to `/api/pin` — correct when the app and function share a host. |
-| `VITE_CONTRACT_ADDRESS` | build | Defaults to the Sepolia deployment below. |
+| `VITE_CHAIN_ID` | build | Target chain ID; `11155111` for Sepolia. |
+| `VITE_ROLES_AND_PERMISSIONS_ADDRESS` | build | Deployed SIH RBAC contract. |
+| `VITE_IDENTITY_REGISTRY_ADDRESS` | build | Deployed SIH identity contract. |
+| `VITE_ASSET_NFT_ADDRESS` | build | Deployed SIH asset contract. |
+| `VITE_CREDENTIAL_VAULT_ADDRESS` | build | Deployed credential contract. |
+| `VITE_CREDENTIAL_ASSET_BRIDGE_ADDRESS` | build | Deployed credential/asset bridge. |
+| `VITE_AUDIT_LOG_ADDRESS` | build | Deployed audit log contract. |
 | `VITE_RPC_URL` | build | Optional preferred RPC. Must serve historical `eth_getLogs`. |
 
-**Current deployment:** [`0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3`](https://sepolia.etherscan.io/address/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3) on Sepolia, from block `11398037`.
-
-Source is verified with an **exact bytecode match** — creation and runtime — on
-[Sourcify](https://repo.sourcify.dev/11155111/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3)
-and [Blockscout](https://eth-sepolia.blockscout.com/address/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3?tab=contract).
-Anyone can recompile this repository and confirm the deployed bytecode is what the
-source says it is.
+The legacy CredentialVault deployment documented elsewhere in this repository is
+not the six-contract SIH deployment. After running `DeployAll`, use the six
+addresses printed by the script in the frontend environment; do not reuse a
+legacy address for an SIH contract.
 
 ## Security
 

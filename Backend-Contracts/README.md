@@ -148,18 +148,21 @@ npm run contract:coverage
 
 ### Deploying
 
-`.env` in `Backend-Contracts/` (gitignored):
+Export these values in the shell running the deployment, or place them in an
+ignored environment file:
 
 ```bash
 PRIVATE_KEY=0x...             # must be 0x-prefixed
 SEPOLIA_RPC_URL=https://...
 ```
 
-Optional overrides — all default sensibly:
+Optional overrides — all default to the deployer:
 
 ```bash
-ADMIN_ADDRESS=0x...                  # default: deployer
-INITIAL_ISSUER=0x...                 # default: deployer
+ADMIN_ADDRESS=0x...                  # must match deployer for DeployAll
+INITIAL_MANAGER_ADDRESS=0x...        # default: deployer
+INITIAL_AUDITOR_ADDRESS=0x...        # default: deployer
+INITIAL_ISSUER_ADDRESS=0x...         # default: deployer
 INITIAL_ISSUER_NAME="Your University"
 INITIAL_ISSUER_ACCREDITATION=...
 INITIAL_ISSUER_WEBSITE=https://...
@@ -169,11 +172,11 @@ INITIAL_ISSUER_WEBSITE=https://...
 npm run contract:deploy
 ```
 
-Then take the real deployment block from
-`broadcast/DeployVault.s.sol/11155111/run-latest.json` (**not** the script's log
-— during a broadcast `block.number` is the simulation block) and update
-`DEPLOYMENT_BLOCK` and `CONTRACT_ADDRESS` in `src/lib/contract.ts`, then run
-`npm run contract:abi` to regenerate the frontend ABI.
+`DeployAll` deploys all six contracts in dependency order and prints the chain ID,
+deployer, and each address. Foundry also writes the transaction record under
+`Backend-Contracts/broadcast/DeployAll.s.sol/<chain-id>/run-latest.json`.
+Copy the six printed addresses into the frontend `VITE_*_ADDRESS` variables, then
+run `npm run contract:abi` and `npm run build`.
 
 ### Pinning
 
