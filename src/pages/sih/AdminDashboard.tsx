@@ -86,7 +86,6 @@ interface IdentityRegistryContract {
   unbindWallet: (did: string, wallet: string) => Promise<unknown>;
   changePrimaryWallet: (did: string, newPrimary: string) => Promise<unknown>;
   getIdentity: (did: string) => Promise<unknown>;
-  getAllDIDs: () => Promise<string[]>;
   getDIDsForWallet: (wallet: string) => Promise<string[]>;
   isVerified: (did: string) => Promise<boolean>;
   isActive: (did: string) => Promise<boolean>;
@@ -272,27 +271,29 @@ export default function AdminDashboard() {
       setManagers(m.map((addr: string) => ethers.getAddress(addr)));
       setAuditors(a.map((addr: string) => ethers.getAddress(addr)));
 
-      // Load identities
-      const dids = await registry.getAllDIDs();
+      // IdentityRegistry is append-only and exposes creation events rather than a
+      // broad getAllDIDs view. Read the event index, then hydrate each record.
+      const identityEvents = await registry.queryFilter(registry.filters.IdentityCreated(), 1, "latest");
+      const dids = identityEvents.flatMap((event) => "args" in event && event.args?.did ? [String(event.args.did)] : []);
       const identityList = await Promise.all(
         dids.slice(0, 100).map(async (did: string) => {
           const id = await registry.getIdentity(did);
           const statusMap = ["Created", "Verified", "Revoked", "Suspended"];
           return {
             did: id[1],
-            name: id[11],
-            email: id[12] || "",
-            organization: id[12] || "",
-            role: id[13] || "",
-            kycStatus: Number(id[3]),
-            isActive: id[4],
-            wallets: id[5],
+            name: id[9],
+            email: "",
+            organization: id[10] || "",
+            role: id[11] || "",
+            kycStatus: Number(id[4]),
+            isActive: Number(id[4]) === 1 || Number(id[4]) === 2,
+            wallets: id[3],
             primaryWallet: id[2],
             createdAt: Number(id[5]),
             verifiedAt: Number(id[6]),
             revokedAt: Number(id[7]),
-            metadataURI: id[9],
-            status: statusMap[Number(id[3])] || "Created",
+            metadataURI: id[8],
+            status: statusMap[Number(id[4]) - 1] || "Created",
           } as IdentityRecord;
         })
       );

@@ -34,6 +34,8 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
 
     /// @notice Mapping: documentHash -> asset tokenId
     mapping(bytes32 => uint256) public credentialToAsset;
+    /// @notice Existence bit keeps token 0 distinguishable from an unlinked credential.
+    mapping(bytes32 => bool) public credentialAssetLinked;
 
     /// @notice Mapping: asset tokenId -> documentHash
     mapping(uint256 => bytes32) public assetToCredential;
@@ -104,7 +106,7 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
         if (credView.status == CredentialVault.Status.None) revert CredentialNotFound();
 
         // Check not already linked
-        if (credentialToAsset[documentHash] != 0) revert AlreadyLinked();
+        if (credentialAssetLinked[documentHash]) revert AlreadyLinked();
 
         // Mint asset
         uint256 tokenId = assetNFT.mintAsset(
@@ -117,6 +119,7 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
 
         // Create bidirectional link
         credentialToAsset[documentHash] = tokenId;
+        credentialAssetLinked[documentHash] = true;
         assetToCredential[tokenId] = documentHash;
 
         emit CredentialLinkedToAsset(documentHash, tokenId, holder, uint48(block.timestamp));
@@ -144,11 +147,12 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
         if (credView.status == CredentialVault.Status.None) revert CredentialNotFound();
 
         // Check not already linked
-        if (credentialToAsset[documentHash] != 0) revert AlreadyLinked();
+        if (credentialAssetLinked[documentHash]) revert AlreadyLinked();
         if (assetToCredential[tokenId] != bytes32(0)) revert AlreadyLinked();
 
         // Create bidirectional link
         credentialToAsset[documentHash] = tokenId;
+        credentialAssetLinked[documentHash] = true;
         assetToCredential[tokenId] = documentHash;
 
         emit AssetLinkedToCredential(tokenId, documentHash, holder, uint48(block.timestamp));
@@ -168,7 +172,7 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
 
     /// @notice Check if a credential is linked to an asset.
     function isCredentialLinked(bytes32 documentHash) external view returns (bool) {
-        return credentialToAsset[documentHash] != 0;
+        return credentialAssetLinked[documentHash];
     }
 
     /// @notice Check if an asset is linked to a credential.
@@ -188,7 +192,7 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
     {
         credView = credentialVault.verifyCredential(holder, documentHash);
         uint256 tokenId = credentialToAsset[documentHash];
-        linked = tokenId != 0;
+        linked = credentialAssetLinked[documentHash];
         if (linked) {
             assetView = assetNFT.getAsset(tokenId);
         }

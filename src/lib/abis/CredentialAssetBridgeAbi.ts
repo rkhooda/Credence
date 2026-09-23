@@ -83,6 +83,25 @@ export const CREDENTIALASSETBRIDGE_ABI = [
   },
   {
     "type": "function",
+    "name": "credentialAssetLinked",
+    "inputs": [
+      {
+        "name": "",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "credentialToAsset",
     "inputs": [
       {

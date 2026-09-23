@@ -107,8 +107,11 @@ export async function resolveRole(walletAddress: string): Promise<RoleInfo> {
 }
 
 interface RolesContract {
-  Permission?: Record<string, number>;
-  hasPermission: (address: string, permission: number) => Promise<boolean>;
+  hasPermission: (role: string, permission: number) => Promise<boolean>;
+  getCallerRoleName: (overrides?: { from: string }) => Promise<string>;
+  MANAGER_ROLE: () => Promise<string>;
+  AUDITOR_ROLE: () => Promise<string>;
+  DEFAULT_ADMIN_ROLE: () => Promise<string>;
 }
 
 /**
@@ -116,22 +119,17 @@ interface RolesContract {
  */
 async function getPermissionsForAddress(roles: RolesContract, address: string): Promise<string[]> {
   const permissionNames = [
-    "RoleGrant", "RoleRevoke", "IdentityCreate", "IdentityUpdateMetadata",
-    "IdentityVerify", "IdentitySuspend", "IdentityRevoke",
-    "AssetMint", "AssetBurn", "AssetAssign", "AssetTransfer",
-    "AssetForceTransfer", "AssetUpdateMetadata",
-    "DocumentVerify", "DocumentRevoke",
-    "SystemPause", "SystemUnpause", "AuditReadAll",
+    "IdentityCreate", "IdentityVerify", "IdentityRevoke", "IdentitySuspend", "IdentityUpdateMetadata",
+    "AssetMint", "AssetBurn", "AssetAssign", "AssetTransfer", "AssetForceTransfer", "AssetUpdateMetadata",
+    "SystemPause", "SystemUnpause", "RoleGrant", "RoleRevoke", "AuditReadAll",
   ];
 
+  const callerRole = await roles.getCallerRoleName({ from: address });
+  const role = callerRole === "Admin" ? await roles.DEFAULT_ADMIN_ROLE() : callerRole === "Manager" ? await roles.MANAGER_ROLE() : callerRole === "Auditor" ? await roles.AUDITOR_ROLE() : ethers.ZeroHash;
   const perms: string[] = [];
-  for (const name of permissionNames) {
+  for (const [permissionValue, name] of permissionNames.entries()) {
     try {
-      const permissionValue = roles.Permission?.[name];
-      if (permissionValue !== undefined) {
-        const hasPerm = await roles.hasPermission(address, permissionValue);
-        if (hasPerm) perms.push(name);
-      }
+      if (await roles.hasPermission(role, permissionValue)) perms.push(name);
     } catch {
       // Ignore errors for individual permissions
     }
@@ -152,6 +150,7 @@ export async function resolveSihContext(walletAddress: string): Promise<{
     resolveRole(walletAddress),
   ]);
 
+  if (!identity && role.role === "user") return { identity, role: { ...role, role: "unregistered" } };
   return { identity, role };
 }
 

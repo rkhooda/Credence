@@ -93,6 +93,10 @@ contract DeployAll is Script {
         identityRegistry = new IdentityRegistry(admin);
         console.log("IdentityRegistry deployed at:", address(identityRegistry));
 
+        if (initialManager != address(0)) {
+            identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), initialManager);
+        }
+
         // 3. Deploy AssetNFT
         console.log("Deploying AssetNFT...");
         assetNFT = new AssetNFT(admin);
@@ -102,6 +106,12 @@ contract DeployAll is Script {
         // For now, grant to admin
         assetNFT.grantRole(assetNFT.ASSET_MANAGER_ROLE(), admin);
         console.log("Granted ASSET_MANAGER_ROLE to admin");
+        if (initialManager != address(0)) {
+            assetNFT.grantRole(assetNFT.ASSET_MANAGER_ROLE(), initialManager);
+        }
+        if (initialAuditor != address(0)) {
+            assetNFT.grantRole(assetNFT.AUDITOR_ROLE(), initialAuditor);
+        }
 
         // 4. Deploy CredentialVault
         console.log("Deploying CredentialVault...");
@@ -119,6 +129,9 @@ contract DeployAll is Script {
 
         // Grant bridge manager role to admin
         credentialAssetBridge.grantRole(credentialAssetBridge.BRIDGE_MANAGER_ROLE(), admin);
+        if (initialManager != address(0)) {
+            credentialAssetBridge.grantRole(credentialAssetBridge.BRIDGE_MANAGER_ROLE(), initialManager);
+        }
 
         // Grant ASSET_MANAGER_ROLE in AssetNFT to CredentialAssetBridge
         assetNFT.grantRole(assetNFT.ASSET_MANAGER_ROLE(), address(credentialAssetBridge));
