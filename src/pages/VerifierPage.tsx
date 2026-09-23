@@ -103,8 +103,8 @@ export default function VerifierPage() {
     const payload = decodeSharePayload(raw.trim());
     if (!payload) {
       toast({
-        title: "Not a CredVault code",
-        description: "Paste the whole share code, including the braces.",
+        title: "Invalid verification code",
+        description: "Paste the whole asset or document share code, including the braces.",
         variant: "destructive",
       });
       return;
@@ -133,10 +133,10 @@ export default function VerifierPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Verify a credential</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Verify an asset or document</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Reads the record straight from the contract on Sepolia. You do not need an account, a wallet, or permission
-          from the institution that issued it.
+          Read a supported certificate or document record straight from the blockchain. You do not need an account,
+          a wallet, or permission from the issuing organization.
         </p>
       </header>
 
@@ -244,10 +244,10 @@ export default function VerifierPage() {
 
       {phase === "notfound" && (
         <div className="animate-reveal mt-6 rounded-lg border-2 border-border-strong bg-muted/40 p-6">
-          <h2 className="text-xl font-semibold">No such credential</h2>
+          <h2 className="text-xl font-semibold">No matching asset or document</h2>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            Nothing has ever been issued to that address under that document hash. Either the code is wrong, or the
-            credential it refers to was never recorded on this contract.
+            Nothing has been issued to that address under that document hash. Either the code is wrong, or the record
+            it refers to was never recorded on this contract.
           </p>
           <Button variant="outline" size="sm" className="mt-4" onClick={reset}>
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
@@ -403,7 +403,7 @@ export default function VerifierPage() {
           </ol>
 
           <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-            Steps two and three are independent. The chain tells you the credential is real and still valid; the hash
+            Steps two and three are independent. The chain tells you the document is real and still valid; the hash
             tells you the paper in your hand is the one it was issued for. A forged document fails the second check even
             when the first passes.
           </p>
