@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWallet, type WalletRole } from "@/hooks/use-wallet";
 import { resolveSihContext, type IdentityInfo, type RoleInfo, type SihRole } from "@/lib/sih";
+export { roleLabel, roleColorClasses } from "@/lib/sih";
 
 export interface SihContext {
   /** Whether SIH platform contracts are configured */

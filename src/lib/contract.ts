@@ -1,17 +1,13 @@
 import { ethers } from "ethers";
 import { CREDENTIAL_VAULT_ABI } from "./credentialVaultAbi";
-import { ROLES_AND_PERMISSIONS_ABI } from "./abis/RolesAndPermissionsAbi";
-import { IDENTITY_REGISTRY_ABI } from "./abis/IdentityRegistryAbi";
-import { ASSET_NFT_ABI } from "./abis/AssetNFTAbi";
-import { CREDENTIAL_ASSET_BRIDGE_ABI } from "./abis/CredentialAssetBridgeAbi";
-import { AUDIT_LOG_ABI } from "./abis/AuditLogAbi";
+import { ROLESANDPERMISSIONS_ABI as ROLES_AND_PERMISSIONS_ABI } from "./abis/RolesAndPermissionsAbi";
+import { IDENTITYREGISTRY_ABI as IDENTITY_REGISTRY_ABI } from "./abis/IdentityRegistryAbi";
+import { ASSETNFT_ABI as ASSET_NFT_ABI } from "./abis/AssetNFTAbi";
+import { CREDENTIALASSETBRIDGE_ABI as CREDENTIAL_ASSET_BRIDGE_ABI } from "./abis/CredentialAssetBridgeAbi";
+import { AUDITLOG_ABI as AUDIT_LOG_ABI } from "./abis/AuditLogAbi";
 
 export { CREDENTIAL_VAULT_ABI } from "./credentialVaultAbi";
-export { ROLES_AND_PERMISSIONS_ABI } from "./abis/RolesAndPermissionsAbi";
-export { IDENTITY_REGISTRY_ABI } from "./abis/IdentityRegistryAbi";
-export { ASSET_NFT_ABI } from "./abis/AssetNFTAbi";
-export { CREDENTIAL_ASSET_BRIDGE_ABI } from "./abis/CredentialAssetBridgeAbi";
-export { AUDIT_LOG_ABI } from "./abis/AuditLogAbi";
+export { ROLES_AND_PERMISSIONS_ABI, IDENTITY_REGISTRY_ABI, ASSET_NFT_ABI, CREDENTIAL_ASSET_BRIDGE_ABI, AUDIT_LOG_ABI };
 
 /**
  * SIH Platform Contract Configuration
@@ -25,6 +21,8 @@ export { AUDIT_LOG_ABI } from "./abis/AuditLogAbi";
 export const LEGACY_CONTRACT_ADDRESS: string =
   (import.meta.env.VITE_LEGACY_CONTRACT_ADDRESS as string | undefined) ??
   "0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3";
+
+export const CONTRACT_ADDRESS: string = LEGACY_CONTRACT_ADDRESS;
 
 // New SIH Platform contracts
 export const ROLES_AND_PERMISSIONS_ADDRESS: string =
