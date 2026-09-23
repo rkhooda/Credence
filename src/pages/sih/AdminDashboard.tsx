@@ -575,7 +575,7 @@ export default function AdminDashboard() {
             <Shield className="h-5 w-5 text-purple" aria-hidden="true" />
           </span>
           <div>
-            <h1 className="text-xl font-semibold tracking-tight">Platform Administration</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Identity & access administration</h1>
             <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
               <AddressChip address={address} size="sm" />
               {identity && <span>{identity.name}</span>}

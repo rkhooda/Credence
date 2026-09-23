@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /*
- * CredVault design system.
+ * SIH Control design system.
  *
  * Three type families, self-hosted so the app renders offline and under a
  * strict CSP:
@@ -70,12 +70,12 @@
 
 @layer base {
   /*
-   * Light is the default: this is a document product, and documents live on
-   * paper-white. Surfaces separate by border contrast and a real neutral ramp,
+   * Light is the default: a cool neutral surface keeps dense identity and
+   * asset-management views readable. Surfaces separate by border contrast,
    * never by gradient.
    */
   :root {
-    --background: 0 0% 100%;
+    --background: 220 20% 98%;
     --foreground: 222 24% 11%;
 
     /* Raised surface. Equal to the page in light mode — the 1px rule does the work. */
