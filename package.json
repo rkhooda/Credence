@@ -42,7 +42,7 @@
     "contract:fmt": "forge fmt --root Backend-Contracts",
     "contract:abi": "npm run contract:build --silent && node scripts/generate-abi.mjs",
     "contract:coverage": "forge coverage --root Backend-Contracts --no-match-coverage script",
-    "contract:deploy": "forge script DeployVault --root Backend-Contracts --rpc-url \"$SEPOLIA_RPC_URL\" --broadcast -vvv",
+    "contract:deploy": "forge script DeployAll --root Backend-Contracts --rpc-url \"$SEPOLIA_RPC_URL\" --broadcast -vvv",
     "contract:verify": "forge verify-contract --root Backend-Contracts --chain sepolia --watch $CONTRACT_ADDRESS src/CredentialVault.sol:CredentialVault"
   },
   "dependencies": {
