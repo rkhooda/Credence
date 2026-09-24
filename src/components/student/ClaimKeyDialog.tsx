@@ -27,7 +27,7 @@ export function ClaimKeyDialog({ open, onOpenChange, onClaimed }: ClaimKeyDialog
     const payload = decodeSharePayload(value.trim());
 
     if (!payload) {
-      setError("That is not a CredVault claim code. Paste the whole thing, including the braces.");
+      setError("That is not a Credence claim code. Paste the whole thing, including the braces.");
       return;
     }
     if (!payload.k) {

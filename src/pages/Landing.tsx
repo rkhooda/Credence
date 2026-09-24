@@ -67,7 +67,7 @@ export default function Landing() {
               Identity, access and assets — with a <span className="text-primary">chain of custody.</span>
             </h1>
             <p className="mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              SIH Control is a blockchain-backed platform for trusted identities, role-based permissions and owned or
+              Credence is a blockchain-backed platform for trusted identities, role-based permissions and owned or
               assigned digital and physical assets.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">

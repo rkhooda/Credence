@@ -128,7 +128,7 @@ export default function SihPortalConnect() {
           <span className="grid h-9 w-9 place-items-center rounded-md border border-border bg-muted">
             <Shield className="h-4.5 w-4.5 text-foreground" aria-hidden="true" />
           </span>
-          <h1 className="text-xl font-semibold tracking-tight">SIH Control</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Credence</h1>
         </div>
 
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6">
@@ -161,7 +161,7 @@ export default function SihPortalConnect() {
       </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground">
-        Connect your wallet to resolve your on-chain identity and role. SIH Control routes you to the workspace your
+        Connect your wallet to resolve your on-chain identity and role. Credence routes you to the workspace your
         blockchain permissions allow — no manual role selection is needed.
       </p>
 
@@ -192,7 +192,7 @@ export default function SihPortalConnect() {
             <span className="grid h-12 w-12 place-items-center rounded-lg border border-border bg-background">
               <LogoMark className="h-6 w-6" />
             </span>
-            <span className="text-[11px] text-muted-foreground">SIH Control</span>
+            <span className="text-[11px] text-muted-foreground">Credence</span>
           </div>
 
           <span className="mb-6 h-px w-10 bg-border-strong" aria-hidden="true" />

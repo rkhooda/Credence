@@ -120,7 +120,7 @@ export function ShareDialog({ record, onClose }: ShareDialogProps) {
             )}
           </Button>
           <Button variant="outline" asChild disabled={!qr}>
-            <a href={qr} download={`credvault-${record?.documentHash.slice(2, 10) ?? "share"}.png`}>
+            <a href={qr} download={`credence-${record?.documentHash.slice(2, 10) ?? "share"}.png`}>
               <Download className="h-4 w-4" aria-hidden="true" />
               Save QR
             </a>

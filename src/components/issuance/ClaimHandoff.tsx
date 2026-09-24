@@ -90,7 +90,7 @@ export function ClaimHandoff({ result, onClose }: ClaimHandoffProps) {
             )}
           </Button>
           <Button variant="outline" asChild disabled={!qr}>
-            <a href={qr} download={`credvault-claim-${result?.documentHash.slice(2, 10) ?? "code"}.png`}>
+            <a href={qr} download={`credence-claim-${result?.documentHash.slice(2, 10) ?? "code"}.png`}>
               <Download className="h-4 w-4" aria-hidden="true" />
               Save QR
             </a>

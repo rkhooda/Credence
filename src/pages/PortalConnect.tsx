@@ -139,7 +139,7 @@ export default function PortalConnect({ role }: PortalConnectProps) {
             <span className="grid h-12 w-12 place-items-center rounded-lg border border-border bg-background">
               <LogoMark className="h-6 w-6" />
             </span>
-            <span className="text-[11px] text-muted-foreground">CredVault</span>
+            <span className="text-[11px] text-muted-foreground">Credence</span>
           </div>
 
           <span className="mb-6 h-px w-10 bg-border-strong" aria-hidden="true" />
@@ -188,7 +188,7 @@ export default function PortalConnect({ role }: PortalConnectProps) {
         ) : (
           <div>
             <p className="text-sm text-muted-foreground">
-              This portal needs a browser wallet. MetaMask is the one CredVault is tested against.
+              This portal needs a browser wallet. MetaMask is the one Credence is tested against.
             </p>
             <Button asChild className="mt-4 w-full">
               <a href={METAMASK_INSTALL_URL} target="_blank" rel="noopener noreferrer">

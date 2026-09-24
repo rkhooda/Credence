@@ -57,7 +57,7 @@ export function KeyBackupDialog({ open, onOpenChange, onRestored }: KeyBackupDia
       const url = URL.createObjectURL(blob);
       const link = window.document.createElement("a");
       link.href = url;
-      link.download = "credvault-keys.json";
+      link.download = "credence-keys.json";
       link.click();
       URL.revokeObjectURL(url);
 
@@ -86,7 +86,7 @@ export function KeyBackupDialog({ open, onOpenChange, onRestored }: KeyBackupDia
     } catch {
       toast({
         title: "Could not restore",
-        description: "Wrong passphrase, or the file is not a CredVault backup.",
+        description: "Wrong passphrase, or the file is not a Credence backup.",
         variant: "destructive",
       });
     } finally {

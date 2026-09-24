@@ -120,10 +120,10 @@ export function Navigation() {
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2 rounded-sm text-foreground"
-          aria-label="SIH Control home"
+          aria-label="Credence home"
         >
           <LogoMark className="h-6 w-6" />
-          <span className="text-[17px] font-semibold tracking-tight">SIH Control</span>
+          <span className="text-[17px] font-semibold tracking-tight">Credence</span>
         </Link>
 
         {/* Navigation — switches between legacy and SIH modes based on contract config */}
