@@ -39,6 +39,7 @@ const SIH_NAV_ITEMS = [
 function roleForPath(pathname: string): WalletRole | null {
   if (pathname.startsWith("/institution")) return "institution";
   if (pathname.startsWith("/student")) return "student";
+  if (["/sih-portal", "/admin", "/manager", "/auditor", "/user"].some((path) => pathname.startsWith(path))) return "sih";
   return null;
 }
 
@@ -111,7 +112,13 @@ export function Navigation() {
 
   const handleDisconnect = () => {
     disconnect();
-    navigate(legacyRole ? (legacyRole === "institution" ? "/institution-portal" : "/student-portal") : "/sih-portal");
+    navigate(
+      legacyRole === "institution"
+        ? "/institution-portal"
+        : legacyRole === "student"
+          ? "/student-portal"
+          : "/sih-portal",
+    );
   };
 
   return (

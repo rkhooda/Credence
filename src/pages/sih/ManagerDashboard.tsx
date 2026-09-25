@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const statusClass = (status: number) => status === 1 ? "bg-success/15 text-success border-success/30" : status === 2 ? "bg-blue/15 text-blue border-blue/30" : status >= 3 ? "bg-warning/15 text-warning border-warning/30" : "bg-muted text-muted-foreground border-border";
 
 export default function ManagerDashboard() {
-  const { toast } = useToast(); const { address } = useWallet(null); const { identity, role, loading: roleLoading } = useSihContext(null);
+  const { toast } = useToast(); const { address } = useWallet("sih"); const { identity, role, loading: roleLoading } = useSihContext("sih");
   const [assets, setAssets] = useState<AssetRecord[]>([]); const [selected, setSelected] = useState<AssetRecord | null>(null); const [history, setHistory] = useState<Awaited<ReturnType<typeof fetchAssetHistory>>>([]);
   const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [search, setSearch] = useState(""); const [typeFilter, setTypeFilter] = useState("all"); const [showMint, setShowMint] = useState(false); const [action, setAction] = useState<"assign" | "transfer" | "metadata" | "link" | null>(null);
   const [form, setForm] = useState({ type: "0", owner: "", assignee: "", did: "", uri: "", to: "", credentialHash: "" });

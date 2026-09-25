@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { CHAIN_ID, getInjectedProvider } from "@/lib/contract";
 
-export type WalletRole = "student" | "institution";
+export type WalletRole = "student" | "institution" | "sih";
 
 /** Storage keys the portals already write on connect. */
 export const WALLET_STORAGE_KEY: Record<WalletRole, string> = {
   student: "credvault_student_wallet",
   institution: "credvault_institution_wallet",
+  sih: "credence_sih_wallet",
 };
 
 /** Minimal EIP-1193 event surface; ethers' type only models `request`. */

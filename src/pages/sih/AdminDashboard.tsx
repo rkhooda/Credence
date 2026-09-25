@@ -190,8 +190,8 @@ function formatAddress(addr: string): string {
 
 export default function AdminDashboard() {
   const { toast } = useToast();
-  const { address } = useWallet(null);
-  const { role: sihRole, loading: roleLoading, identity, isConfigured } = useSihContext(null);
+  const { address } = useWallet("sih");
+  const { role: sihRole, loading: roleLoading, identity, isConfigured } = useSihContext("sih");
 
   const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(true);

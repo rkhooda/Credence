@@ -56,7 +56,7 @@ export default function SihPortalConnect() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { address, chainId } = useWallet(null);
+  const { address, chainId } = useWallet("sih");
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [hasWallet, setHasWallet] = useState(true);
@@ -102,8 +102,7 @@ export default function SihPortalConnect() {
         return;
       }
 
-      localStorage.setItem(WALLET_STORAGE_KEY.student, account);
-      localStorage.setItem(WALLET_STORAGE_KEY.institution, account);
+      localStorage.setItem(WALLET_STORAGE_KEY.sih, account);
 
       navigate(SIH_ROLES[nextRole].dashboard);
     } catch (err) {
