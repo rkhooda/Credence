@@ -18,7 +18,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useCopy } from "@/hooks/use-copy";
 import { chainName, useWallet, type WalletRole } from "@/hooks/use-wallet";
 import { useSihContext, roleLabel, roleColorClasses } from "@/hooks/use-sih";
-import { CHAIN_ID, ensureSepolia, isSihPlatformConfigured } from "@/lib/contract";
+import { CHAIN_ID, ensureSepolia, getAuditLogRO, isSihPlatformConfigured } from "@/lib/contract";
+import { fetchAssets, fetchAssetsForAddress } from "@/lib/sih-assets";
+import { readCached } from "@/lib/sih-cache";
 import { cn } from "@/lib/utils";
 import { explorerAddressUrl, truncateMiddle } from "@/utils/format";
 
@@ -97,6 +99,22 @@ export function Navigation() {
   const { role: sihRoleInfo, identity, isConfigured, loading: sihLoading } = useSihContext(legacyRole);
 
   useEffect(() => setMobileOpen(false), [location.pathname]);
+
+  // Warm both the route chunks and shared chain reads as soon as the SIH
+  // wallet is known. Dashboard components can then render from memory when
+  // the user switches sections, instead of starting another RPC round trip.
+  useEffect(() => {
+    if (!address || !isConfigured || legacyRole !== "sih") return;
+    void Promise.all([
+      import("@/pages/sih/UserDashboard"),
+      import("@/pages/sih/ManagerDashboard"),
+      import("@/pages/sih/AuditorDashboard"),
+      import("@/pages/sih/AdminDashboard"),
+      fetchAssets(),
+      fetchAssetsForAddress(address),
+      readCached("audit:recent:100", () => getAuditLogRO().getRecentEntries(100, 0)),
+    ]);
+  }, [address, isConfigured, legacyRole]);
 
   const handleSwitchNetwork = async () => {
     try {

@@ -188,6 +188,8 @@ function formatAddress(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
+const adminSnapshots = new Map<string, { paused: boolean; managers: string[]; auditors: string[]; identities: IdentityRecord[] }>();
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { address } = useWallet("sih");
@@ -250,8 +252,19 @@ export default function AdminDashboard() {
     }
   }, [sihRole, roleLoading, isConfigured, toast]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!isConfigured || !address) return;
+
+    const cacheKey = address.toLowerCase();
+    const cached = !force ? adminSnapshots.get(cacheKey) : undefined;
+    if (cached) {
+      setPaused(cached.paused);
+      setManagers(cached.managers);
+      setAuditors(cached.auditors);
+      setIdentities(cached.identities);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -299,6 +312,7 @@ export default function AdminDashboard() {
         })
       );
       setIdentities(identityList);
+      adminSnapshots.set(cacheKey, { paused: p, managers: m.map((addr: string) => ethers.getAddress(addr)), auditors: a.map((addr: string) => ethers.getAddress(addr)), identities: identityList });
     } catch (err) {
       console.error("Failed to load admin data:", err);
       toast({ title: "Load failed", description: describeError(err), variant: "destructive" });
@@ -318,7 +332,7 @@ export default function AdminDashboard() {
       const signer = await provider.getSigner();
       await action(signer);
       toast({ title: "Success", description: "Transaction confirmed" });
-      load();
+      load(true);
       onSuccess?.();
     } catch (err) {
       toast({ title: "Action failed", description: describeError(err), variant: "destructive" });
