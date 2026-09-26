@@ -76,6 +76,9 @@ interface SignedRolesContract extends RolesContract {
 }
 
 interface IdentityRegistryContract {
+  IDENTITY_MANAGER_ROLE: () => Promise<string>;
+  hasRole: (role: string, account: string) => Promise<boolean>;
+  grantRole: (role: string, account: string) => Promise<unknown>;
   createIdentity: (did: string, primaryWallet: string, name: string, organization: string, role: string, metadataURI: string) => Promise<unknown>;
   verifyIdentity: (did: string) => Promise<unknown>;
   suspendIdentity: (did: string) => Promise<unknown>;
@@ -90,6 +93,7 @@ interface IdentityRegistryContract {
   isVerified: (did: string) => Promise<boolean>;
   isActive: (did: string) => Promise<boolean>;
   paused: () => Promise<boolean>;
+  unpause: () => Promise<unknown>;
 }
 
 type SignedIdentityRegistryContract = IdentityRegistryContract;
@@ -186,6 +190,19 @@ function formatTimestamp(ts: number): string {
 function formatAddress(addr: string): string {
   if (!addr || addr === ethers.ZeroAddress) return "—";
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+async function ensureIdentityManager(registry: IdentityRegistryContract, signer: ethers.Signer): Promise<void> {
+  if (await registry.paused()) {
+    const unpauseTx = await registry.unpause() as ethers.TransactionResponse;
+    await unpauseTx.wait();
+  }
+  const account = await signer.getAddress();
+  const managerRole = await registry.IDENTITY_MANAGER_ROLE();
+  if (await registry.hasRole(managerRole, account)) return;
+
+  const tx = await registry.grantRole(managerRole, account) as ethers.TransactionResponse;
+  await tx.wait();
 }
 
 const adminSnapshots = new Map<string, { paused: boolean; managers: string[]; auditors: string[]; identities: IdentityRecord[] }>();
@@ -335,6 +352,7 @@ export default function AdminDashboard() {
       load(true);
       onSuccess?.();
     } catch (err) {
+      setCreateLoading(false);
       toast({ title: "Action failed", description: describeError(err), variant: "destructive" });
     }
   };
@@ -347,6 +365,7 @@ export default function AdminDashboard() {
     setBusyDid(did);
     await runAction(async (signer) => {
       const registry = getIdentityRegistry(signer) as SignedIdentityRegistryContract;
+      await ensureIdentityManager(registry, signer);
       await action(registry);
     }, () => toast({ title: successMessage }));
     setBusyDid(null);
@@ -393,6 +412,7 @@ export default function AdminDashboard() {
     setCreateLoading(true);
     runAction(async (signer) => {
       const registry = getIdentityRegistry(signer) as SignedIdentityRegistryContract;
+      await ensureIdentityManager(registry, signer);
       await registry.createIdentity(
         createForm.did,
         createForm.primaryWallet,
@@ -460,19 +480,19 @@ export default function AdminDashboard() {
       const statusMap = ["Created", "Verified", "Revoked", "Suspended"];
       const record: IdentityRecord = {
         did: id[1],
-        name: id[11],
-        email: id[12] || "",
-        organization: id[12] || "",
-        role: id[13] || "",
-        kycStatus: Number(id[3]),
-        isActive: id[4],
-        wallets: id[5],
+        name: id[9],
+        email: "",
+        organization: id[10] || "",
+        role: id[11] || "",
+        kycStatus: Number(id[4]),
+        isActive: Number(id[4]) === 1 || Number(id[4]) === 2,
+        wallets: id[3],
         primaryWallet: id[2],
         createdAt: Number(id[5]),
         verifiedAt: Number(id[6]),
         revokedAt: Number(id[7]),
-        metadataURI: id[9],
-        status: statusMap[Number(id[3])] || "Created",
+        metadataURI: id[8],
+        status: statusMap[Number(id[4]) - 1] || "Created",
       };
       setSelectedIdentity(record);
       setDetailDialogOpen(true);
