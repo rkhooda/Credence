@@ -121,6 +121,27 @@ interface AuditEntry {
   txHash: string;
 }
 
+type TupleLike = { [key: string]: unknown; [key: number]: unknown };
+
+function tupleValue(value: unknown, name: string, index: number): unknown {
+  const tuple = value as TupleLike;
+  return tuple?.[name] ?? tuple?.[index];
+}
+
+function normalizeAuditEntry(value: unknown): AuditEntry {
+  return {
+    index: BigInt(tupleValue(value, "index", 0) ?? 0),
+    category: Number(tupleValue(value, "category", 1) ?? 0),
+    actor: String(tupleValue(value, "actor", 2) ?? ethers.ZeroAddress),
+    target: String(tupleValue(value, "target", 3) ?? ethers.ZeroAddress),
+    targetHash: String(tupleValue(value, "targetHash", 4) ?? ethers.ZeroHash),
+    details: String(tupleValue(value, "details", 5) ?? ""),
+    timestamp: Number(tupleValue(value, "timestamp", 6) ?? 0),
+    blockNumber: BigInt(tupleValue(value, "blockNumber", 7) ?? 0),
+    txHash: String(tupleValue(value, "txHash", 8) ?? ""),
+  };
+}
+
 interface QueryFilter {
   category: number;
   actor: string;
@@ -180,7 +201,8 @@ const STATUS_COLORS = {
   Suspended: "bg-destructive/20 text-destructive border-destructive/30",
 };
 
-const KYC_LABELS = ["None", "Pending", "Verified", "Rejected"];
+const KYC_LABELS = ["None", "Created", "Verified", "Revoked", "Suspended"];
+const IDENTITY_STATUS_LABELS = ["None", "Created", "Verified", "Revoked", "Suspended"] as const;
 
 function formatTimestamp(ts: number): string {
   if (!ts || ts === 0) return "—";
@@ -190,6 +212,54 @@ function formatTimestamp(ts: number): string {
 function formatAddress(addr: string): string {
   if (!addr || addr === ethers.ZeroAddress) return "—";
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
+}
+
+async function loadIdentityEventAudit(): Promise<AuditEntry[]> {
+  const registry = getIdentityRegistryRO();
+  const eventDefinitions = [
+    ["IdentityCreated", 0, "Created identity"] as const,
+    ["IdentityVerified", 1, "Verified identity"] as const,
+    ["IdentityRevoked", 2, "Revoked identity"] as const,
+    ["IdentitySuspended", 3, "Suspended identity"] as const,
+    ["IdentityReinstated", 4, "Reinstated identity"] as const,
+    ["IdentityMetadataUpdated", 5, "Updated identity metadata"] as const,
+    ["WalletBound", 6, "Bound wallet"] as const,
+    ["WalletUnbound", 7, "Unbound wallet"] as const,
+    ["PrimaryWalletChanged", 8, "Changed primary wallet"] as const,
+  ];
+
+  const eventGroups = await Promise.all(eventDefinitions.map(async ([eventName, category, label]) => {
+    const events = await queryFilterChunked(
+      registry,
+      registry.filters[eventName](),
+      SIH_DEPLOYMENT_BLOCK,
+    );
+    return events.flatMap((event) => {
+      if (!("args" in event)) return [];
+      const args = event.args;
+      const did = String(args?.did ?? args?.[0] ?? "");
+      const actor = String(args?.verifier ?? args?.revoker ?? args?.suspender ?? args?.reinstater ?? ethers.ZeroAddress);
+      const target = String(args?.primaryWallet ?? args?.wallet ?? args?.newWallet ?? ethers.ZeroAddress);
+      const timestamp = Number(args?.timestamp ?? args?.[args.length - 1] ?? 0);
+      const name = args?.name ? String(args.name) : "";
+      const details = name ? `${label}: ${name} (${did})` : `${label}: ${did}`;
+      const blockNumber = Number(event.blockNumber ?? 0);
+      const eventIndex = Number("index" in event ? event.index : 0);
+      return [{
+        index: BigInt(blockNumber) * 1_000_000n + BigInt(eventIndex),
+        category,
+        actor,
+        target,
+        targetHash: ethers.id(did),
+        details,
+        timestamp,
+        blockNumber: BigInt(blockNumber),
+        txHash: String(event.transactionHash ?? ""),
+      }];
+    });
+  }));
+
+  return eventGroups.flat().sort((a, b) => Number(b.blockNumber - a.blockNumber));
 }
 
 async function ensureIdentityManager(registry: IdentityRegistryContract, signer: ethers.Signer): Promise<void> {
@@ -309,7 +379,6 @@ export default function AdminDashboard() {
       const identityList = await Promise.all(
         dids.slice(0, 100).map(async (did: string) => {
           const id = await registry.getIdentity(did);
-          const statusMap = ["Created", "Verified", "Revoked", "Suspended"];
           const status = Number(id[4] ?? 0);
           return {
             did: String(id[1] ?? ""),
@@ -325,7 +394,7 @@ export default function AdminDashboard() {
             verifiedAt: Number(id[6] ?? 0),
             revokedAt: Number(id[7] ?? 0),
             metadataURI: String(id[8] ?? ""),
-            status: statusMap[status - 1] || "Created",
+            status: (IDENTITY_STATUS_LABELS[status] === "None" ? "Created" : IDENTITY_STATUS_LABELS[status] ?? "Created") as IdentityRecord["status"],
           } as IdentityRecord;
         })
       );
@@ -343,14 +412,15 @@ export default function AdminDashboard() {
     load();
   }, [isConfigured, address, load]);
 
-  const runAction = async (action: (signer: ethers.Signer) => Promise<void>, onSuccess?: () => void) => {
+  const runAction = async (action: (signer: ethers.Signer) => Promise<unknown>, onSuccess?: () => void) => {
     try {
       await ensureSepolia();
       const provider = new ethers.BrowserProvider(getInjectedProvider()!);
       const signer = await provider.getSigner();
-      await action(signer);
+      const transaction = await action(signer) as ethers.TransactionResponse | undefined;
+      if (transaction?.wait) await transaction.wait();
       toast({ title: "Success", description: "Transaction confirmed" });
-      load(true);
+      await load(true);
       onSuccess?.();
     } catch (err) {
       setCreateLoading(false);
@@ -414,7 +484,7 @@ export default function AdminDashboard() {
     runAction(async (signer) => {
       const registry = getIdentityRegistry(signer) as SignedIdentityRegistryContract;
       await ensureIdentityManager(registry, signer);
-      await registry.createIdentity(
+      return registry.createIdentity(
         createForm.did,
         createForm.primaryWallet,
         createForm.name,
@@ -478,7 +548,6 @@ export default function AdminDashboard() {
         toast({ title: "Not found", description: "Identity does not exist", variant: "destructive" });
         return;
       }
-      const statusMap = ["Created", "Verified", "Revoked", "Suspended"];
       const status = Number(id[4] ?? 0);
       const record: IdentityRecord = {
         did: String(id[1] ?? ""),
@@ -494,7 +563,7 @@ export default function AdminDashboard() {
         verifiedAt: Number(id[6] ?? 0),
         revokedAt: Number(id[7] ?? 0),
         metadataURI: String(id[8] ?? ""),
-        status: statusMap[status - 1] || "Created",
+        status: (IDENTITY_STATUS_LABELS[status] === "None" ? "Created" : IDENTITY_STATUS_LABELS[status] ?? "Created") as IdentityRecord["status"],
       };
       setSelectedIdentity(record);
       setDetailDialogOpen(true);
@@ -513,9 +582,21 @@ export default function AdminDashboard() {
 
       let entries: AuditEntry[];
       if (auditCategoryFilter !== "all") {
-        entries = await audit.getEntriesByCategory(auditCategoryFilter, 50, append ? auditOffset : 0);
+        entries = (await audit.getEntriesByCategory(auditCategoryFilter, 50, append ? auditOffset : 0)).map(normalizeAuditEntry);
       } else {
-        entries = await audit.getRecentEntries(50, append ? auditOffset : 0);
+        entries = (await audit.getRecentEntries(50, append ? auditOffset : 0)).map(normalizeAuditEntry);
+      }
+
+      // The currently deployed IdentityRegistry emits the authoritative
+      // identity events but does not call the standalone AuditLog contract.
+      // Show those real chain events when the optional index is empty.
+      if (entries.length === 0) {
+        const allIdentityEvents = await loadIdentityEventAudit();
+        const filteredEvents = auditCategoryFilter === "all"
+          ? allIdentityEvents
+          : allIdentityEvents.filter((entry) => entry.category === auditCategoryFilter);
+        const offset = append ? auditOffset : 0;
+        entries = filteredEvents.slice(offset, offset + 50);
       }
 
       if (append) {
@@ -524,7 +605,7 @@ export default function AdminDashboard() {
         setAuditEntries(entries);
       }
       setAuditHasMore(entries.length === 50);
-      if (!append) setAuditOffset(entries.length);
+      setAuditOffset((previous) => append ? previous + entries.length : entries.length);
     } catch (err) {
       toast({ title: "Failed to load audit log", description: describeError(err), variant: "destructive" });
     } finally {
@@ -921,7 +1002,7 @@ export default function AdminDashboard() {
             <div className="p-4 border-b border-border flex flex-wrap gap-4 items-center justify-between">
               <h2 className="text-base font-semibold">Audit Log</h2>
               <div className="flex flex-wrap gap-2 items-center">
-                <Select value={auditCategoryFilter} onValueChange={(v) => { setAuditCategoryFilter(v); setAuditOffset(0); }}>
+                <Select value={String(auditCategoryFilter)} onValueChange={(v) => { setAuditCategoryFilter(v === "all" ? "all" : Number(v)); setAuditOffset(0); }}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>
