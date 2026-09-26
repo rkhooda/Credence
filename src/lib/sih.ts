@@ -51,13 +51,17 @@ export async function resolveIdentity(walletAddress: string): Promise<IdentityIn
     const primaryDid = dids[0];
     const identity = await registry.getIdentity(primaryDid);
 
+    // IdentityView is (exists, did, primaryWallet, wallets, status, ...,
+    // metadataURI, name, organization, role). Keep the tuple mapping here in
+    // one place so contract ABI changes cannot leak booleans/Results into UI.
+    const status = Number(identity[4] ?? 0);
     return {
-      did: identity[0],           // did
-      name: identity[1],          // name
-      email: identity[2],         // email
-      kycStatus: Number(identity[3]), // kycStatus
-      isActive: identity[4],      // isActive
-      wallets: identity[5],       // wallets
+      did: identity[0] ? String(identity[1] ?? "") : null,
+      name: String(identity[9] ?? ""),
+      email: "",
+      kycStatus: status,
+      isActive: status === 1 || status === 2,
+      wallets: Array.from(identity[3] ?? [], (wallet) => String(wallet)),
     };
   } catch (err) {
     console.warn(`Failed to resolve identity for ${walletAddress}:`, err);

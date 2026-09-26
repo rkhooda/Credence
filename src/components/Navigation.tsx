@@ -246,7 +246,7 @@ export function Navigation() {
                     <div className="mt-2 space-y-1">
                       <div className="text-xs font-medium text-foreground">{identity.name || "Unnamed Identity"}</div>
                       <div className="text-xs text-muted-foreground">{identity.email || "No email"}</div>
-                      <div className="text-[10px] text-muted-foreground">DID: {identity.did?.slice(0, 16)}…</div>
+                      <div className="text-[10px] text-muted-foreground">DID: {String(identity.did ?? "").slice(0, 16)}…</div>
                     </div>
                   )}
 

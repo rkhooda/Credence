@@ -310,21 +310,22 @@ export default function AdminDashboard() {
         dids.slice(0, 100).map(async (did: string) => {
           const id = await registry.getIdentity(did);
           const statusMap = ["Created", "Verified", "Revoked", "Suspended"];
+          const status = Number(id[4] ?? 0);
           return {
-            did: id[1],
-            name: id[9],
+            did: String(id[1] ?? ""),
+            name: String(id[9] ?? ""),
             email: "",
-            organization: id[10] || "",
-            role: id[11] || "",
-            kycStatus: Number(id[4]),
-            isActive: Number(id[4]) === 1 || Number(id[4]) === 2,
-            wallets: id[3],
-            primaryWallet: id[2],
-            createdAt: Number(id[5]),
-            verifiedAt: Number(id[6]),
-            revokedAt: Number(id[7]),
-            metadataURI: id[8],
-            status: statusMap[Number(id[4]) - 1] || "Created",
+            organization: String(id[10] ?? ""),
+            role: String(id[11] ?? ""),
+            kycStatus: status,
+            isActive: status === 1 || status === 2,
+            wallets: Array.from(id[3] ?? [], (wallet) => String(wallet)),
+            primaryWallet: String(id[2] ?? ""),
+            createdAt: Number(id[5] ?? 0),
+            verifiedAt: Number(id[6] ?? 0),
+            revokedAt: Number(id[7] ?? 0),
+            metadataURI: String(id[8] ?? ""),
+            status: statusMap[status - 1] || "Created",
           } as IdentityRecord;
         })
       );
@@ -478,21 +479,22 @@ export default function AdminDashboard() {
         return;
       }
       const statusMap = ["Created", "Verified", "Revoked", "Suspended"];
+      const status = Number(id[4] ?? 0);
       const record: IdentityRecord = {
-        did: id[1],
-        name: id[9],
+        did: String(id[1] ?? ""),
+        name: String(id[9] ?? ""),
         email: "",
-        organization: id[10] || "",
-        role: id[11] || "",
-        kycStatus: Number(id[4]),
-        isActive: Number(id[4]) === 1 || Number(id[4]) === 2,
-        wallets: id[3],
-        primaryWallet: id[2],
-        createdAt: Number(id[5]),
-        verifiedAt: Number(id[6]),
-        revokedAt: Number(id[7]),
-        metadataURI: id[8],
-        status: statusMap[Number(id[4]) - 1] || "Created",
+        organization: String(id[10] ?? ""),
+        role: String(id[11] ?? ""),
+        kycStatus: status,
+        isActive: status === 1 || status === 2,
+        wallets: Array.from(id[3] ?? [], (wallet) => String(wallet)),
+        primaryWallet: String(id[2] ?? ""),
+        createdAt: Number(id[5] ?? 0),
+        verifiedAt: Number(id[6] ?? 0),
+        revokedAt: Number(id[7] ?? 0),
+        metadataURI: String(id[8] ?? ""),
+        status: statusMap[status - 1] || "Created",
       };
       setSelectedIdentity(record);
       setDetailDialogOpen(true);
@@ -544,7 +546,7 @@ export default function AdminDashboard() {
     const matchesSearch = search === "" ||
       id.name?.toLowerCase().includes(search.toLowerCase()) ||
       id.email?.toLowerCase().includes(search.toLowerCase()) ||
-      id.did?.toLowerCase().includes(search.toLowerCase()) ||
+      String(id.did ?? "").toLowerCase().includes(search.toLowerCase()) ||
       id.wallets?.some((w: string) => w.toLowerCase().includes(search.toLowerCase()));
     const matchesFilter = filter === "all" ||
       (filter === "active" && id.isActive) ||
@@ -838,7 +840,7 @@ export default function AdminDashboard() {
                   ) : (
                     filteredIdentities.map((id) => (
                       <tr key={id.did} className="hover:bg-muted/30">
-                        <td className="p-3 font-mono text-xs">{id.did?.slice(0, 20)}…</td>
+                        <td className="p-3 font-mono text-xs">{String(id.did ?? "").slice(0, 20)}…</td>
                         <td className="p-3 text-sm">{id.name || "—"}</td>
                         <td className="p-3 text-sm text-muted-foreground">{id.email || "—"}</td>
                         <td className="p-3">
