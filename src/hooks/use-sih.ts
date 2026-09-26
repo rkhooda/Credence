@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWallet, type WalletRole } from "@/hooks/use-wallet";
+import { isSihPlatformConfigured } from "@/lib/contract";
 import { resolveSihContext, type IdentityInfo, type RoleInfo, type SihRole } from "@/lib/sih";
 export { roleLabel, roleColorClasses } from "@/lib/sih";
 
@@ -25,7 +26,7 @@ export interface SihContext {
 export function useSihContext(role: WalletRole | null): SihContext {
   const { address } = useWallet(role);
   const [context, setContext] = useState<SihContext>({
-    isConfigured: false,
+    isConfigured: isSihPlatformConfigured(),
     identity: null,
     role: { role: "user", isAtLeastManager: false, isAtLeastAuditor: false, isAdmin: false, permissions: [] },
     loading: true,
@@ -42,7 +43,6 @@ export function useSihContext(role: WalletRole | null): SihContext {
     setContext((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const { isSihPlatformConfigured } = await import("@/lib/contract");
       const configured = isSihPlatformConfigured();
 
       if (!configured) {

@@ -543,6 +543,15 @@ export default function AdminDashboard() {
     );
   }
 
+  if (roleLoading || loading) {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+        <p className="mt-3">Loading platform administration…</p>
+      </div>
+    );
+  }
+
   if (!isConfigured) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-20">

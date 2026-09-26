@@ -50,7 +50,10 @@ export interface WalletState {
  */
 export function useWallet(role: WalletRole | null): WalletState {
   const storageKey = role ? WALLET_STORAGE_KEY[role] : null;
-  const [address, setAddress] = useState<string | null>(null);
+  const [address, setAddress] = useState<string | null>(() => {
+    if (typeof window === "undefined" || !storageKey) return null;
+    return localStorage.getItem(storageKey);
+  });
   const [chainId, setChainId] = useState<number | null>(null);
 
   useEffect(() => {

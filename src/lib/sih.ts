@@ -126,15 +126,16 @@ async function getPermissionsForAddress(roles: RolesContract, address: string): 
 
   const callerRole = await roles.getCallerRoleName({ from: address });
   const role = callerRole === "Admin" ? await roles.DEFAULT_ADMIN_ROLE() : callerRole === "Manager" ? await roles.MANAGER_ROLE() : callerRole === "Auditor" ? await roles.AUDITOR_ROLE() : ethers.ZeroHash;
-  const perms: string[] = [];
-  for (const [permissionValue, name] of permissionNames.entries()) {
-    try {
-      if (await roles.hasPermission(role, permissionValue)) perms.push(name);
-    } catch {
-      // Ignore errors for individual permissions
-    }
-  }
-  return perms;
+  const checks = await Promise.all(
+    permissionNames.map(async (name, permissionValue) => {
+      try {
+        return (await roles.hasPermission(role, permissionValue)) ? name : null;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return checks.filter((name): name is string => name !== null);
 }
 
 /**
