@@ -10,6 +10,7 @@ import { WALLET_STORAGE_KEY, chainName, useWallet, type WalletRole } from "@/hoo
 import { CHAIN_ID, ensureSepolia, getInjectedProvider, isSihPlatformConfigured } from "@/lib/contract";
 import { describeError } from "@/lib/issuance";
 import { resolveSihContext, roleLabel, roleColorClasses } from "@/lib/sih";
+import { cn } from "@/lib/utils";
 
 const METAMASK_INSTALL_URL = "https://metamask.io/download/";
 
