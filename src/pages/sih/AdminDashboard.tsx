@@ -241,6 +241,7 @@ export default function AdminDashboard() {
   const [auditOffset, setAuditOffset] = useState(0);
   const [auditHasMore, setAuditHasMore] = useState(true);
   const [auditCategoryFilter, setAuditCategoryFilter] = useState<number | "all">("all");
+  const [auditActivated, setAuditActivated] = useState(false);
 
   // Guard: only admins can access
   useEffect(() => {
@@ -495,9 +496,11 @@ export default function AdminDashboard() {
     }
   }, [isConfigured, auditCategoryFilter, auditOffset, toast]);
 
+  // Audit data is intentionally deferred: it is a separate tab and can be a
+  // large on-chain read. This keeps the admin overview responsive.
   useEffect(() => {
-    if (isConfigured) loadAuditLog(false);
-  }, [isConfigured, auditCategoryFilter, loadAuditLog]);
+    if (isConfigured && auditActivated) loadAuditLog(false);
+  }, [isConfigured, auditActivated, auditCategoryFilter, loadAuditLog]);
 
   const loadMoreAudit = () => {
     loadAuditLog(true);
@@ -610,7 +613,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <Tabs defaultValue="roles" className="mt-8">
+      <Tabs defaultValue="roles" className="mt-8" onValueChange={(value) => { if (value === "audit") setAuditActivated(true); }}>
         <TabsList>
           <TabsTrigger value="roles">
             <Users className="h-4 w-4" /> Role Management
@@ -872,7 +875,7 @@ export default function AdminDashboard() {
             <div className="p-4 border-b border-border flex flex-wrap gap-4 items-center justify-between">
               <h2 className="text-base font-semibold">Audit Log</h2>
               <div className="flex flex-wrap gap-2 items-center">
-                <Select value={auditCategoryFilter} onValueChange={(v) => { setAuditCategoryFilter(v); setAuditOffset(0); loadAuditLog(false); }}>
+                <Select value={auditCategoryFilter} onValueChange={(v) => { setAuditCategoryFilter(v); setAuditOffset(0); }}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="All categories" />
                   </SelectTrigger>

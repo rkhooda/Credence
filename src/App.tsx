@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { HashRouter, Routes, Route } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { Navigation } from "@/components/Navigation";
 import Landing from "./pages/Landing";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -11,11 +12,19 @@ import InstitutionDashboard from "./pages/InstitutionDashboard";
 import VerifierPage from "./pages/VerifierPage";
 import NotFound from "./pages/NotFound";
 import PortalConnect from "./pages/PortalConnect";
-import AdminDashboard from "./pages/sih/AdminDashboard";
-import ManagerDashboard from "./pages/sih/ManagerDashboard";
-import AuditorDashboard from "./pages/sih/AuditorDashboard";
-import UserDashboard from "./pages/sih/UserDashboard";
 import SihPortalConnect from "./pages/sih/SihPortalConnect";
+
+// Keep the large portal screens out of the initial bundle. These routes are
+// reached after login, so loading them on demand makes navigation to the
+// landing page and portal connect screen much faster.
+const AdminDashboard = lazy(() => import("./pages/sih/AdminDashboard"));
+const ManagerDashboard = lazy(() => import("./pages/sih/ManagerDashboard"));
+const AuditorDashboard = lazy(() => import("./pages/sih/AuditorDashboard"));
+const UserDashboard = lazy(() => import("./pages/sih/UserDashboard"));
+
+function DashboardFallback() {
+  return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground">Loading workspace…</div>;
+}
 
 const queryClient = new QueryClient();
 
@@ -31,6 +40,7 @@ const App = () => (
           <div className="flex min-h-screen flex-col">
             <Navigation />
             <main className="flex-1">
+              <Suspense fallback={<DashboardFallback />}>
               <Routes>
                 <Route path="/" element={<Landing />} />
 
@@ -54,6 +64,7 @@ const App = () => (
                 {/* Keep the catch-all last. */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </main>
           </div>
         </HashRouter>
