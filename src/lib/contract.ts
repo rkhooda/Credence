@@ -24,25 +24,51 @@ export const LEGACY_CONTRACT_ADDRESS: string =
 
 export const CONTRACT_ADDRESS: string = LEGACY_CONTRACT_ADDRESS;
 
+export const CHAIN_ID: number =
+  Number((import.meta.env.VITE_CHAIN_ID as string | undefined) ?? 11155111);
+
+// Verified Sepolia deployment from Backend-Contracts/broadcast/DeployAll.
+// These defaults protect production builds from stale Vercel VITE_* values
+// pointing at an older contract with an incompatible ABI.
+const VERIFIED_SEPOLIA_ADDRESSES = {
+  roles: "0xe0dc09c754ff95a48c960e9280650717284cd2e8",
+  identity: "0x77f634771ca157e31aea0c0a8cd19a7cc0b2a691",
+  asset: "0x098e6d74ad964bfb098673673f1327670117dbfa",
+  vault: "0x68633ecea55e90f48922290dc9610cb6d32aabe5",
+  bridge: "0x68faf69679e628d6050826466dc7ad67a0bcdc07",
+  audit: "0xd7df9fb0a541b0e9e6ad2c6d4bd0800754046873",
+} as const;
+
+function sihAddress(value: string | undefined, verified: string): string {
+  if (CHAIN_ID === 11155111) return verified;
+  return value ?? "";
+}
+
 // New SIH Platform contracts
-export const ROLES_AND_PERMISSIONS_ADDRESS: string =
-  (import.meta.env.VITE_ROLES_AND_PERMISSIONS_ADDRESS as string | undefined) ?? "";
-
-export const IDENTITY_REGISTRY_ADDRESS: string =
-  (import.meta.env.VITE_IDENTITY_REGISTRY_ADDRESS as string | undefined) ?? "";
-
-export const ASSET_NFT_ADDRESS: string =
-  (import.meta.env.VITE_ASSET_NFT_ADDRESS as string | undefined) ?? "";
-
-export const CREDENTIAL_VAULT_ADDRESS: string =
-  (import.meta.env.VITE_CREDENTIAL_VAULT_ADDRESS as string | undefined) ??
-  LEGACY_CONTRACT_ADDRESS;
-
-export const CREDENTIAL_ASSET_BRIDGE_ADDRESS: string =
-  (import.meta.env.VITE_CREDENTIAL_ASSET_BRIDGE_ADDRESS as string | undefined) ?? "";
-
-export const AUDIT_LOG_ADDRESS: string =
-  (import.meta.env.VITE_AUDIT_LOG_ADDRESS as string | undefined) ?? "";
+export const ROLES_AND_PERMISSIONS_ADDRESS = sihAddress(
+  import.meta.env.VITE_ROLES_AND_PERMISSIONS_ADDRESS as string | undefined,
+  VERIFIED_SEPOLIA_ADDRESSES.roles,
+);
+export const IDENTITY_REGISTRY_ADDRESS = sihAddress(
+  import.meta.env.VITE_IDENTITY_REGISTRY_ADDRESS as string | undefined,
+  VERIFIED_SEPOLIA_ADDRESSES.identity,
+);
+export const ASSET_NFT_ADDRESS = sihAddress(
+  import.meta.env.VITE_ASSET_NFT_ADDRESS as string | undefined,
+  VERIFIED_SEPOLIA_ADDRESSES.asset,
+);
+export const CREDENTIAL_VAULT_ADDRESS = sihAddress(
+  import.meta.env.VITE_CREDENTIAL_VAULT_ADDRESS as string | undefined,
+  VERIFIED_SEPOLIA_ADDRESSES.vault,
+);
+export const CREDENTIAL_ASSET_BRIDGE_ADDRESS = sihAddress(
+  import.meta.env.VITE_CREDENTIAL_ASSET_BRIDGE_ADDRESS as string | undefined,
+  VERIFIED_SEPOLIA_ADDRESSES.bridge,
+);
+export const AUDIT_LOG_ADDRESS = sihAddress(
+  import.meta.env.VITE_AUDIT_LOG_ADDRESS as string | undefined,
+  VERIFIED_SEPOLIA_ADDRESSES.audit,
+);
 
 /**
  * Whether the new SIH platform contracts are deployed and configured.
@@ -58,9 +84,6 @@ export function isSihPlatformConfigured(): boolean {
     AUDIT_LOG_ADDRESS
   );
 }
-
-export const CHAIN_ID: number =
-  Number((import.meta.env.VITE_CHAIN_ID as string | undefined) ?? 11155111);
 
 const DEFAULT_SEPOLIA_RPC_URLS = [
   "https://sepolia.gateway.tenderly.co",
