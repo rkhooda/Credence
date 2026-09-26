@@ -62,12 +62,35 @@ export function isSihPlatformConfigured(): boolean {
 export const CHAIN_ID: number =
   Number((import.meta.env.VITE_CHAIN_ID as string | undefined) ?? 11155111);
 
-export const RPC_URLS: string[] = [
-  import.meta.env.VITE_RPC_URL as string | undefined,
+const DEFAULT_SEPOLIA_RPC_URLS = [
   "https://sepolia.gateway.tenderly.co",
   "https://eth-sepolia.api.onfinality.io/public",
   "https://sepolia.drpc.org",
-].filter((url): url is string => Boolean(url));
+];
+
+function isKnownWrongNetworkRpc(url: string): boolean {
+  if (CHAIN_ID !== 11155111) return false;
+  const normalized = url.toLowerCase();
+  return normalized.includes("eth-mainnet") ||
+    normalized.includes("mainnet.alchemy") ||
+    normalized.includes("ethereum-mainnet") ||
+    normalized.includes("mainnet.infura");
+}
+
+function isConfiguredRpcForTarget(url: string): boolean {
+  if (CHAIN_ID !== 11155111) return true;
+  const normalized = url.toLowerCase();
+  // A production env accidentally pointed at an Alchemy mainnet URL. Only
+  // accept explicitly Sepolia-labelled overrides for the Sepolia build.
+  return normalized.includes("sepolia") || normalized.includes("11155111");
+}
+
+const configuredRpcUrl = import.meta.env.VITE_RPC_URL as string | undefined;
+export const RPC_URLS: string[] = [
+  configuredRpcUrl,
+  ...DEFAULT_SEPOLIA_RPC_URLS,
+].filter((url): url is string => Boolean(url) && !isKnownWrongNetworkRpc(url) &&
+  (url !== configuredRpcUrl || isConfiguredRpcForTarget(url)));
 
 export const RPC_URL: string = RPC_URLS[0];
 
@@ -77,7 +100,9 @@ const RPC_TIMEOUT_MS = 15_000;
 function createProvider(url: string): ethers.JsonRpcProvider {
   const request = new ethers.FetchRequest(url);
   request.timeout = RPC_TIMEOUT_MS;
-  return new ethers.JsonRpcProvider(request, CHAIN_ID, { staticNetwork: true });
+  // Let ethers verify the endpoint's actual chain. A stale deployment RPC
+  // must fail loudly instead of silently returning empty role/asset data.
+  return new ethers.JsonRpcProvider(request, CHAIN_ID);
 }
 
 async function queryFilterChunked(

@@ -102,7 +102,7 @@ export async function resolveRole(walletAddress: string): Promise<RoleInfo> {
     };
   } catch (err) {
     console.warn(`Failed to resolve role for ${walletAddress}:`, err);
-    return { role: "user", isAtLeastManager: false, isAtLeastAuditor: false, isAdmin: false, permissions: [] };
+    throw new Error("Could not read platform roles. Check that the app is using the Sepolia network and RPC endpoint.", { cause: err });
   }
 }
 

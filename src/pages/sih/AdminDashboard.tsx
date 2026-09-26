@@ -193,7 +193,7 @@ const adminSnapshots = new Map<string, { paused: boolean; managers: string[]; au
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { address } = useWallet("sih");
-  const { role: sihRole, loading: roleLoading, identity, isConfigured } = useSihContext("sih");
+  const { role: sihRole, loading: roleLoading, identity, isConfigured, error: contextError } = useSihContext("sih");
 
   const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -577,6 +577,16 @@ export default function AdminDashboard() {
           <h2 className="mt-4 text-xl font-semibold">SIH Platform Not Configured</h2>
           <p className="mt-2 text-muted-foreground">Contract addresses not set. Configure VITE_*_ADDRESS environment variables.</p>
         </div>
+      </div>
+    );
+  }
+
+  if (contextError) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <AlertTriangle className="mx-auto h-12 w-12 text-destructive" />
+        <h2 className="mt-4 text-xl font-semibold">Platform connection unavailable</h2>
+        <p className="mt-2 text-muted-foreground">{contextError}</p>
       </div>
     );
   }

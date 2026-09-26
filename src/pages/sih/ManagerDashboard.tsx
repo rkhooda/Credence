@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 const statusClass = (status: number) => status === 1 ? "bg-success/15 text-success border-success/30" : status === 2 ? "bg-blue/15 text-blue border-blue/30" : status >= 3 ? "bg-warning/15 text-warning border-warning/30" : "bg-muted text-muted-foreground border-border";
 
 export default function ManagerDashboard() {
-  const { toast } = useToast(); const { address } = useWallet("sih"); const { identity, role, loading: roleLoading } = useSihContext("sih");
+  const { toast } = useToast(); const { address } = useWallet("sih"); const { identity, role, loading: roleLoading, error: contextError } = useSihContext("sih");
   const [assets, setAssets] = useState<AssetRecord[]>([]); const [selected, setSelected] = useState<AssetRecord | null>(null); const [history, setHistory] = useState<Awaited<ReturnType<typeof fetchAssetHistory>>>([]);
   const [loading, setLoading] = useState(true); const [busy, setBusy] = useState(false); const [search, setSearch] = useState(""); const [typeFilter, setTypeFilter] = useState("all"); const [showMint, setShowMint] = useState(false); const [action, setAction] = useState<"assign" | "transfer" | "metadata" | "link" | null>(null);
   const [form, setForm] = useState({ type: "0", owner: "", assignee: "", did: "", uri: "", to: "", credentialHash: "" });
@@ -32,6 +32,7 @@ export default function ManagerDashboard() {
   const openDetails = async (asset: AssetRecord) => { setSelected(asset); setHistory(await fetchAssetHistory(asset.tokenId)); };
   if (!address) return <Empty title="Connect wallet" text="Connect the manager wallet to manage blockchain assets." />;
   if (roleLoading || loading) return <div className="mx-auto max-w-7xl px-4 py-20 text-center text-muted-foreground"><Loader2 className="mx-auto h-6 w-6 animate-spin" /><p className="mt-3">Reading asset registry…</p></div>;
+  if (contextError) return <Empty title="Platform connection unavailable" text={contextError} />;
   if (!role.isAtLeastManager) return <Empty title="Access denied" text={`Your on-chain role is ${role.role}. Asset writes require the Manager role.`} />;
   return <div className="mx-auto max-w-7xl px-4 py-8"><header className="flex flex-wrap items-start justify-between gap-4"><div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-lg border bg-muted"><UserCog className="h-5 w-5 text-primary" /></span><div><h1 className="text-xl font-semibold">Asset operations</h1><div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground"><AddressChip address={address} size="sm" />{identity?.name && <span>{identity.name}</span>}<span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs text-primary">Manager</span></div></div></div><div className="flex gap-2"><Button variant="outline" onClick={() => void load()}><RefreshCw className="h-4 w-4" /> Refresh</Button><Button onClick={() => setShowMint(true)}><Plus className="h-4 w-4" /> Create asset</Button></div></header>
     <div className="mt-8 grid gap-4 sm:grid-cols-3"><Metric label="Assets on chain" value={assets.length} /><Metric label="Assigned" value={assets.filter((a) => a.assignee !== ethers.ZeroAddress).length} /><Metric label="Active" value={assets.filter((a) => a.status === 1).length} /></div>
