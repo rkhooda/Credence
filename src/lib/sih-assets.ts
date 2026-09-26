@@ -1,5 +1,5 @@
 import { ethers } from "ethers";
-import { getAssetNFTRO, getReadOnlyProvider } from "./contract";
+import { getAssetNFTRO, getReadOnlyProvider, queryFilterChunked, SIH_DEPLOYMENT_BLOCK } from "./contract";
 import { readCached } from "./sih-cache";
 
 export const ASSET_TYPES = ["Certificate", "Document", "Equipment", "Device", "License", "Other"] as const;
@@ -99,7 +99,7 @@ export async function fetchAssetHistory(tokenId?: string): Promise<Array<{
     contract.filters.AssetStatusChanged(),
     contract.filters.AssetMetadataUpdated(),
   ];
-  const logs = (await Promise.all(filters.map((filter) => contract.queryFilter(filter, 1, head)))).flat();
+  const logs = (await Promise.all(filters.map((filter) => queryFilterChunked(contract, filter, SIH_DEPLOYMENT_BLOCK, head)))).flat();
   const result = logs.flatMap((log) => {
     if (!(log instanceof ethers.EventLog)) return [];
     const args = log.args;

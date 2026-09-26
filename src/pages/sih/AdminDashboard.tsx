@@ -34,7 +34,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useWallet } from "@/hooks/use-wallet";
 import { useSihContext } from "@/hooks/use-sih";
-import { ensureSepolia, getInjectedProvider, getRolesAndPermissions, getIdentityRegistry, getRolesAndPermissionsRO, getIdentityRegistryRO, getAuditLogRO, isSihPlatformConfigured } from "@/lib/contract";
+import { ensureSepolia, getInjectedProvider, getRolesAndPermissions, getIdentityRegistry, getRolesAndPermissionsRO, getIdentityRegistryRO, getAuditLogRO, isSihPlatformConfigured, queryFilterChunked, SIH_DEPLOYMENT_BLOCK } from "@/lib/contract";
 import { AddressChip } from "@/components/data/AddressChip";
 import { describeError } from "@/lib/issuance";
 import { cn } from "@/lib/utils";
@@ -304,7 +304,7 @@ export default function AdminDashboard() {
 
       // IdentityRegistry is append-only and exposes creation events rather than a
       // broad getAllDIDs view. Read the event index, then hydrate each record.
-      const identityEvents = await registry.queryFilter(registry.filters.IdentityCreated(), 1, "latest");
+      const identityEvents = await queryFilterChunked(registry, registry.filters.IdentityCreated(), SIH_DEPLOYMENT_BLOCK);
       const dids = identityEvents.flatMap((event) => "args" in event && event.args?.did ? [String(event.args.did)] : []);
       const identityList = await Promise.all(
         dids.slice(0, 100).map(async (did: string) => {

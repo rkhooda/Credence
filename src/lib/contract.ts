@@ -128,13 +128,15 @@ function createProvider(url: string): ethers.JsonRpcProvider {
   return new ethers.JsonRpcProvider(request, CHAIN_ID);
 }
 
-async function queryFilterChunked(
+export async function queryFilterChunked(
   contract: ethers.Contract,
   filter: ethers.DeferredTopicFilter,
-  head: number,
+  fromBlock = 1,
+  requestedHead?: number,
 ): Promise<(ethers.EventLog | ethers.Log)[]> {
+  const head = requestedHead ?? await (contract.runner as ethers.Provider).getBlockNumber();
   const logs: (ethers.EventLog | ethers.Log)[] = [];
-  for (let from = 1; from <= head; from += LOG_CHUNK_SIZE) {
+  for (let from = fromBlock; from <= head; from += LOG_CHUNK_SIZE) {
     const to = Math.min(from + LOG_CHUNK_SIZE - 1, head);
     logs.push(...(await contract.queryFilter(filter, from, to)));
   }
@@ -154,7 +156,7 @@ export async function queryEventsFromDeployment(
       } catch (err) {
         lastError = err;
         const head = await provider.getBlockNumber();
-        return await Promise.all(buildFilters((abi) => new ethers.Contract("", abi, provider)).map((f) => queryFilterChunked(f, f, head)));
+        return await Promise.all(buildFilters((abi) => new ethers.Contract("", abi, provider)).map((f) => queryFilterChunked(f, f, 1, head)));
       }
     } catch (err) {
       lastError = err;
@@ -292,3 +294,6 @@ export function getContract(providerOrSigner: ethers.ContractRunner) {
 }
 
 export const DEPLOYMENT_BLOCK = 1;
+export const SIH_DEPLOYMENT_BLOCK = Number(
+  (import.meta.env.VITE_SIH_DEPLOYMENT_BLOCK as string | undefined) ?? 11777907,
+);
