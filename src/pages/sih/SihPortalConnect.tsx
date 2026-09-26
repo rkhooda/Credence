@@ -277,7 +277,7 @@ export default function SihPortalConnect() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2">
         {Object.entries(SIH_ROLES).map(([key, config]) => {
           const Icon = config.icon;
           const isActive = resolvedRole === key;
