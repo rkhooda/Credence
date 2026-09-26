@@ -128,14 +128,14 @@ interface QueryFilter {
   offset: number;
 }
 
+// Must stay in the same order as RolesAndPermissions.Permission (bool[16]).
+// DocumentVerify/DocumentRevoke are not part of the deployed contract enum.
 const PERMISSIONS = [
-  "RoleGrant", "RoleRevoke", "IdentityCreate", "IdentityUpdateMetadata",
-  "IdentityVerify", "IdentitySuspend", "IdentityRevoke",
-  "AssetMint", "AssetBurn", "AssetAssign", "AssetTransfer",
-  "AssetForceTransfer", "AssetUpdateMetadata",
-  "DocumentVerify", "DocumentRevoke",
-  "SystemPause", "SystemUnpause", "AuditReadAll",
-];
+  "IdentityCreate", "IdentityVerify", "IdentityRevoke", "IdentitySuspend", "IdentityUpdateMetadata",
+  "AssetMint", "AssetBurn", "AssetAssign", "AssetTransfer", "AssetForceTransfer", "AssetUpdateMetadata",
+  "SystemPause", "SystemUnpause", "RoleGrant", "RoleRevoke", "AuditReadAll",
+] as const;
+const PERMISSION_INDEX = Object.fromEntries(PERMISSIONS.map((permission, index) => [permission, index]));
 
 const AUDIT_CATEGORIES = [
   { value: 0, label: "Identity Created" },
@@ -414,17 +414,17 @@ export default function AdminDashboard() {
   const reinstateIdentity = (did: string) => runIdentityAction(did, (r) => r.reinstateIdentity(did), "Identity reinstated");
   const revokeIdentity = (did: string) => runIdentityAction(did, (r) => r.revokeIdentity(did), "Identity revoked");
 
-  const loadPermissions = async () => {
+  const loadPermissions = async (roleToLoad: "manager" | "auditor" = selectedRole) => {
     if (!isConfigured) return;
     setPermLoading(true);
     try {
       const roles = getRolesAndPermissionsRO() as RolesContract;
-      const roleHash = selectedRole === "manager"
+      const roleHash = roleToLoad === "manager"
         ? await roles.MANAGER_ROLE()
         : await roles.AUDITOR_ROLE();
       const perms = await roles.getRolePermissions(roleHash);
       const permMap: Record<string, boolean> = {};
-      PERMISSIONS.forEach((p, i) => { permMap[p] = perms[i]; });
+      PERMISSIONS.forEach((p, i) => { permMap[p] = Boolean(perms[i]); });
       setPermissions(permMap);
     } catch (err) {
       toast({ title: "Failed to load permissions", description: describeError(err), variant: "destructive" });
@@ -439,7 +439,7 @@ export default function AdminDashboard() {
       ? await roles.MANAGER_ROLE()
       : await roles.AUDITOR_ROLE();
     for (const [perm, enabled] of Object.entries(permissions)) {
-      const permValue = roles.Permission?.[perm];
+      const permValue = PERMISSION_INDEX[perm as keyof typeof PERMISSION_INDEX];
       if (permValue !== undefined) {
         if (enabled) await roles.grantPermission(roleHash, permValue);
         else await roles.revokePermission(roleHash, permValue);
@@ -637,7 +637,7 @@ export default function AdminDashboard() {
         </div>
       </header>
 
-      <Tabs defaultValue="roles" className="mt-8" onValueChange={(value) => { if (value === "audit") setAuditActivated(true); }}>
+      <Tabs defaultValue="roles" className="mt-8" onValueChange={(value) => { if (value === "audit") setAuditActivated(true); if (value === "permissions") void loadPermissions(); }}>
         <TabsList>
           <TabsTrigger value="roles">
             <Users className="h-4 w-4" /> Role Management
@@ -733,7 +733,7 @@ export default function AdminDashboard() {
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold">Permission Matrix</h2>
-              <Select value={selectedRole} onValueChange={(v) => { setSelectedRole(v as "manager" | "auditor"); loadPermissions(); }}>
+              <Select value={selectedRole} onValueChange={(v) => { const nextRole = v as "manager" | "auditor"; setSelectedRole(nextRole); void loadPermissions(nextRole); }}>
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
