@@ -11,6 +11,7 @@
  */
 import { ethers } from "ethers";
 import { getIdentityRegistryRO, getRolesAndPermissionsRO, isSihPlatformConfigured } from "./contract";
+import { readCached } from "./sih-cache";
 
 export type SihRole = "admin" | "manager" | "auditor" | "user" | "unregistered";
 
@@ -90,15 +91,14 @@ export async function resolveRole(walletAddress: string): Promise<RoleInfo> {
     else if (isAtLeastAuditor) role = "auditor";
     else if (roleName && roleName !== "User") role = roleName.toLowerCase() as SihRole;
 
-    // Fetch permissions for the role
-    const permissions = await getPermissionsForAddress(roles, checksummed);
-
     return {
       role,
       isAtLeastManager,
       isAtLeastAuditor,
       isAdmin,
-      permissions,
+      // Permissions are loaded only in the Admin permission tab. Resolving
+      // them here caused 16 extra RPC calls on every dashboard mount.
+      permissions: [],
     };
   } catch (err) {
     console.warn(`Failed to resolve role for ${walletAddress}:`, err);
@@ -142,7 +142,7 @@ async function getPermissionsForAddress(roles: RolesContract, address: string): 
  * Combined function: wallet → identity → role
  * This is the main entry point for the SIH platform flow.
  */
-export async function resolveSihContext(walletAddress: string): Promise<{
+async function resolveSihContextUncached(walletAddress: string): Promise<{
   identity: IdentityInfo | null;
   role: RoleInfo;
 }> {
@@ -153,6 +153,14 @@ export async function resolveSihContext(walletAddress: string): Promise<{
 
   if (!identity && role.role === "user") return { identity, role: { ...role, role: "unregistered" } };
   return { identity, role };
+}
+
+export function resolveSihContext(walletAddress: string): Promise<{
+  identity: IdentityInfo | null;
+  role: RoleInfo;
+}> {
+  const key = ethers.getAddress(walletAddress).toLowerCase();
+  return readCached(`sih:context:${key}`, () => resolveSihContextUncached(walletAddress));
 }
 
 /**

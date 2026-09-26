@@ -20,11 +20,19 @@ export interface AssetRecord {
 export function assetTypeLabel(value: number): string { return ASSET_TYPES[value] ?? `Type ${value}`; }
 export function assetStatusLabel(value: number): string { return ASSET_STATUS[value] ?? `Status ${value}`; }
 
+async function mapInBatches<T, R>(items: T[], mapper: (item: T) => Promise<R>, batchSize = 4): Promise<R[]> {
+  const result: R[] = [];
+  for (let index = 0; index < items.length; index += batchSize) {
+    result.push(...await Promise.all(items.slice(index, index + batchSize).map(mapper)));
+  }
+  return result;
+}
+
 export async function fetchAssets(force = false): Promise<AssetRecord[]> {
   return readCached("assets:all", async () => {
     const contract = getAssetNFTRO();
     const count = Number(await contract.totalAssets());
-    const assets = await Promise.all(Array.from({ length: count }, async (_, index) => {
+    const assets = await mapInBatches(Array.from({ length: count }, (_, index) => index), async (index) => {
       const view = await contract.getAsset(index);
       if (!view.exists) return null;
       return {
@@ -38,7 +46,7 @@ export async function fetchAssets(force = false): Promise<AssetRecord[]> {
         createdAt: Number(view.createdAt),
         updatedAt: Number(view.updatedAt),
       } satisfies AssetRecord;
-    }));
+    });
     return assets.filter((asset): asset is AssetRecord => asset !== null).reverse();
   }, force);
 }
@@ -53,7 +61,7 @@ export async function fetchAssetsForAddress(address: string, force = false): Pro
       contract.getAssigneeAssets(address),
     ]);
     const tokenIds = [...new Set([...owned, ...assigned].map((id: bigint) => id.toString()))];
-    const assets = await Promise.all(tokenIds.map(async (tokenId) => {
+    const assets = await mapInBatches(tokenIds, async (tokenId) => {
       const view = await contract.getAsset(tokenId);
       if (!view.exists) return null;
       return {
@@ -67,7 +75,7 @@ export async function fetchAssetsForAddress(address: string, force = false): Pro
         createdAt: Number(view.createdAt),
         updatedAt: Number(view.updatedAt),
       } satisfies AssetRecord;
-    }));
+    });
     return assets.filter((asset): asset is AssetRecord => asset !== null).reverse();
   }, force);
 }

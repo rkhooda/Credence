@@ -167,8 +167,19 @@ export async function queryEventsFromDeployment(
   throw lastError;
 }
 
-export function getReadOnlyProvider(): ethers.JsonRpcProvider {
-  return createProvider(RPC_URL);
+let sharedRpcProvider: ethers.JsonRpcProvider | null = null;
+let sharedInjectedProvider: ethers.BrowserProvider | null = null;
+
+export function getReadOnlyProvider(): ethers.JsonRpcProvider | ethers.BrowserProvider {
+  // A connected wallet is already on the target chain and avoids hammering a
+  // shared public RPC during dashboard preloading.
+  const injected = getInjectedProvider();
+  if (injected) {
+    if (!sharedInjectedProvider) sharedInjectedProvider = new ethers.BrowserProvider(injected);
+    return sharedInjectedProvider;
+  }
+  if (!sharedRpcProvider) sharedRpcProvider = createProvider(RPC_URL);
+  return sharedRpcProvider;
 }
 
 export function getInjectedProvider(): ethers.Eip1193Provider | undefined {
