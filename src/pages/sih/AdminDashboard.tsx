@@ -375,25 +375,34 @@ export default function AdminDashboard() {
       // IdentityRegistry is append-only and exposes creation events rather than a
       // broad getAllDIDs view. Read the event index, then hydrate each record.
       const identityEvents = await queryFilterChunked(registry, registry.filters.IdentityCreated(), SIH_DEPLOYMENT_BLOCK);
-      const dids = identityEvents.flatMap((event) => "args" in event && event.args?.did ? [String(event.args.did)] : []);
+      const identityEventByDid = new Map<string, ethers.EventLog | ethers.Log>();
+      for (const event of identityEvents) {
+        if (!("args" in event)) continue;
+        const did = String(event.args?.did ?? event.args?.[0] ?? "");
+        if (did) identityEventByDid.set(did, event);
+      }
+      const dids = [...identityEventByDid.keys()].slice(-100);
       const identityList = await Promise.all(
         dids.slice(0, 100).map(async (did: string) => {
           const id = await registry.getIdentity(did);
-          const status = Number(id[4] ?? 0);
+          const createdEvent = identityEventByDid.get(did);
+          const eventArgs = createdEvent && "args" in createdEvent ? createdEvent.args : undefined;
+          const status = Number(tupleValue(id, "status", 4) ?? 1);
+          const walletsValue = tupleValue(id, "wallets", 3);
           return {
-            did: String(id[1] ?? ""),
-            name: String(id[9] ?? ""),
+            did: String(tupleValue(id, "did", 1) || did),
+            name: String(tupleValue(id, "name", 9) || eventArgs?.name || ""),
             email: "",
-            organization: String(id[10] ?? ""),
-            role: String(id[11] ?? ""),
+            organization: String(tupleValue(id, "organization", 10) || eventArgs?.organization || ""),
+            role: String(tupleValue(id, "role", 11) || ""),
             kycStatus: status,
             isActive: status === 1 || status === 2,
-            wallets: Array.from(id[3] ?? [], (wallet) => String(wallet)),
-            primaryWallet: String(id[2] ?? ""),
-            createdAt: Number(id[5] ?? 0),
-            verifiedAt: Number(id[6] ?? 0),
-            revokedAt: Number(id[7] ?? 0),
-            metadataURI: String(id[8] ?? ""),
+            wallets: Array.isArray(walletsValue) ? walletsValue.map((wallet) => String(wallet)) : [],
+            primaryWallet: String(tupleValue(id, "primaryWallet", 2) || eventArgs?.primaryWallet || ""),
+            createdAt: Number(tupleValue(id, "createdAt", 5) ?? eventArgs?.timestamp ?? 0),
+            verifiedAt: Number(tupleValue(id, "verifiedAt", 6) ?? 0),
+            revokedAt: Number(tupleValue(id, "revokedAt", 7) ?? 0),
+            metadataURI: String(tupleValue(id, "metadataURI", 8) ?? ""),
             status: (IDENTITY_STATUS_LABELS[status] === "None" ? "Created" : IDENTITY_STATUS_LABELS[status] ?? "Created") as IdentityRecord["status"],
           } as IdentityRecord;
         })
@@ -548,21 +557,21 @@ export default function AdminDashboard() {
         toast({ title: "Not found", description: "Identity does not exist", variant: "destructive" });
         return;
       }
-      const status = Number(id[4] ?? 0);
+      const status = Number(tupleValue(id, "status", 4) ?? 0);
       const record: IdentityRecord = {
-        did: String(id[1] ?? ""),
-        name: String(id[9] ?? ""),
+        did: String(tupleValue(id, "did", 1) ?? did),
+        name: String(tupleValue(id, "name", 9) ?? ""),
         email: "",
-        organization: String(id[10] ?? ""),
-        role: String(id[11] ?? ""),
+        organization: String(tupleValue(id, "organization", 10) ?? ""),
+        role: String(tupleValue(id, "role", 11) ?? ""),
         kycStatus: status,
         isActive: status === 1 || status === 2,
-        wallets: Array.from(id[3] ?? [], (wallet) => String(wallet)),
-        primaryWallet: String(id[2] ?? ""),
-        createdAt: Number(id[5] ?? 0),
-        verifiedAt: Number(id[6] ?? 0),
-        revokedAt: Number(id[7] ?? 0),
-        metadataURI: String(id[8] ?? ""),
+        wallets: Array.from(tupleValue(id, "wallets", 3) as Iterable<unknown> ?? [], (wallet) => String(wallet)),
+        primaryWallet: String(tupleValue(id, "primaryWallet", 2) ?? ""),
+        createdAt: Number(tupleValue(id, "createdAt", 5) ?? 0),
+        verifiedAt: Number(tupleValue(id, "verifiedAt", 6) ?? 0),
+        revokedAt: Number(tupleValue(id, "revokedAt", 7) ?? 0),
+        metadataURI: String(tupleValue(id, "metadataURI", 8) ?? ""),
         status: (IDENTITY_STATUS_LABELS[status] === "None" ? "Created" : IDENTITY_STATUS_LABELS[status] ?? "Created") as IdentityRecord["status"],
       };
       setSelectedIdentity(record);
