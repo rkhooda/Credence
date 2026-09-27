@@ -1,180 +1,260 @@
 <div align="center">
 
-<img src="src/assets/logo.png" width="88" alt="" />
+<img src="src/assets/logo.png" width="88" alt="Credence logo" />
 
-# CredVault
+# Credence
 
-**Verifiable academic credentials on Ethereum.**
+### A blockchain-based platform for trusted identities, digital assets, and verifiable credentials
 
-The chain proves the credential. A `keccak256` hash binds it to the document.<br />
-The student holds the only key that reads it.
+Credence is a Smart India Hackathon project that uses decentralized identity,
+role-based access control, blockchain asset records, encrypted document storage,
+and public verification to create a transparent and tamper-evident digital trust
+layer for institutions and their users.
 
-[![CI](https://github.com/rkhooda/CredVault/actions/workflows/ci.yml/badge.svg)](https://github.com/rkhooda/CredVault/actions/workflows/ci.yml)
-[![Contracts](https://img.shields.io/badge/Foundry-56_tests_·_100%25_coverage-2f855a?style=flat-square)](Backend-Contracts/README.md)
-[![Network](https://img.shields.io/badge/Sepolia-deployed-1449c9?style=flat-square&logo=ethereum&logoColor=white)](https://sepolia.etherscan.io/address/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3)
-[![Verified](https://img.shields.io/badge/Sourcify-exact_match-2f855a?style=flat-square)](https://repo.sourcify.dev/11155111/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3)
-[![License](https://img.shields.io/badge/License-MIT-333?style=flat-square)](LICENSE)
+[![Live demo](https://img.shields.io/badge/Live_demo-Vercel-111827?style=flat-square&logo=vercel)](https://cred-vaulte.vercel.app)
+[![Network](https://img.shields.io/badge/Network-Sepolia_testnet-627eea?style=flat-square&logo=ethereum&logoColor=white)](https://sepolia.etherscan.io)
+[![License](https://img.shields.io/badge/License-MIT-2f855a?style=flat-square)](LICENSE)
 
-**[Live demo](https://cred-vaulte.vercel.app)**  ·  [Try it end to end](docs/CredVault-Testing-Walkthrough.pdf)  ·  [Contract on Etherscan](https://sepolia.etherscan.io/address/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3)  ·  [Architecture & threat model](Backend-Contracts/README.md)
+**[Open the live demo](https://cred-vaulte.vercel.app)** · **[Open the public verifier](https://cred-vaulte.vercel.app/#/verify)** · **[Read the contract documentation](Backend-Contracts/README.md)**
 
 </div>
 
 ---
 
-<!--
-  Demo recording: drop a screen capture at docs/demo.gif (or upload an .mp4 to any
-  GitHub issue and paste the resulting user-attachments URL on its own line here),
-  then uncomment the line below.
+## 1. Project overview
 
-![CredVault walkthrough](docs/demo.gif)
--->
+Institutions manage large amounts of sensitive information: identity records,
+certificates, ownership records, assignments, and administrative activity. In a
+traditional system, these records are usually held in isolated databases. That
+creates several practical problems:
 
-![The landing page, reading a real credential from the live contract](docs/screenshots/landing.png)
+- Records can be changed without a transparent history.
+- Verification often depends on the issuing institution remaining available.
+- A verifier may have no simple way to distinguish an original document from a modified copy.
+- Permissions are frequently managed by application logic instead of an independently verifiable authority.
+- Sensitive document content must be protected while still allowing authenticity to be checked.
 
----
+Credence addresses these problems by placing authoritative state transitions and
+verification data on Ethereum while keeping sensitive metadata encrypted off-chain.
+The platform is designed around a simple principle:
 
-## The problem
+> Publicly verify what must be trusted; protect what must remain private.
 
-Checking whether a degree is real still means emailing a registrar and waiting. The
-verifier has to trust that whoever replies is honest and that the record behind them has
-not been quietly edited. If the institution closes, folds into another, or simply stops
-answering, the credential becomes unverifiable — not false, just unprovable.
+The current implementation contains two connected capability areas:
 
-CredVault separates the two questions a credential actually raises, and gives each one a
-home that suits it:
+1. **SIH Platform:** decentralized identities, on-chain roles, digital assets, credential-to-asset linking, and audit history.
+2. **Credential verification:** document hashing, institution-issued credentials, holder consent, encrypted metadata, QR/share verification, and revocation checks.
 
-| Question | Answered by | Why there |
-| --- | --- | --- |
-| *Is this credential real and still valid?* | Ethereum | Public, permanent, no server to trust or take offline |
-| *What does it actually say?* | Encrypted blob on IPFS | Content-addressed and durable, but must not be world-readable |
+The live deployment uses the **Ethereum Sepolia testnet**. It is a working prototype
+and demonstration system; it is not presented as a production or legally equivalent
+government registry.
 
-The chain holds a hash and a pointer. The pointer resolves to ciphertext. The key that
-opens it never touches either.
+## 2. Core capabilities
 
-## How it works
+### Decentralized identity
 
-```
-Institution                        Chain (Sepolia)                Student / Verifier
------------                        ---------------                ------------------
-PDF ──keccak256──► documentHash ──► credentials[holder][hash]
- │                                    { issuer, status,
- │                                      issuedAt, expiresAt,
- │                                      metadataURI }
- ├─ K = HKDF(issuerSig(holder|hash))
- └─ AES-GCM(metadata, K) ─► /api/pin ─► IPFS ─► ipfs://CID ───┘
+The `IdentityRegistry` maps a Decentralized Identifier (DID) to one or more wallet
+addresses and records the identity lifecycle on-chain. An identity can be created,
+verified, suspended, reinstated, or revoked by authorized platform operators.
 
-Share link / QR carries { holder, documentHash, K }
-Verifier: read chain → fetch CID → decrypt with K → re-hash the PDF
-```
+### On-chain roles and permissions
 
-Three checks stack, and they are independent:
+The `RolesAndPermissions` contract provides blockchain-enforced authorization for:
 
-1. **The record exists on-chain** and is `Active` — the credential is real and unrevoked.
-2. **The file re-hashes to `documentHash`** — the PDF in your hand is byte-for-byte the one issued.
-3. **The key decrypts the payload** — you were actually granted the right to read the details.
+- Platform administrators
+- Managers who operate assets and identities
+- Auditors with read-only oversight access
+- Regular users connected to their registered identity
 
-A forged document fails check 2 even when check 1 passes.
+The application does not decide a user’s privileged role from frontend state. It
+resolves the connected wallet against the deployed contracts and routes the user to
+the workspace allowed by the chain.
 
-## Features
+### Digital asset lifecycle
 
-- **Real document binding** — `documentHash` is `keccak256` over the certificate's actual bytes. Hashing happens in the browser; the file is never uploaded anywhere.
-- **Encrypted, not public** — metadata is AES-256-GCM encrypted before it reaches IPFS, under a key derived via HKDF from a deterministic issuer signature.
-- **Holder consent** — credentials arrive `Pending` and become `Active` only when the student accepts on-chain. No institution writes to your identity unprompted.
-- **On-chain issuer registry** — verifiers see *CredVault Demo University*, not `0x8cb784…`, with accreditation reference and website.
-- **Correct revocation** — only the issuing institution can revoke, and a mistaken revocation can be reinstated. Every change is a public, timestamped, attributable event.
-- **Expiry** — licences and certifications lapse on time without needing a revocation transaction.
-- **Batch issuance** — up to 100 credentials in a single transaction.
-- **Key backup** — the holder's decryption key exports wrapped under a passphrase (PBKDF2, 310k iterations) and restores on another device.
+Managers can mint assets, assign them to users, transfer ownership, update metadata,
+and inspect asset history. Each asset is represented by an on-chain token record with
+an owner, assignee, status, optional DID association, metadata URI, and event history.
 
-## Screens
+### Verifiable credentials
 
-<table>
-<tr>
-<td width="50%"><img src="docs/screenshots/verify.png" alt="A credential verified against the live Sepolia contract" /></td>
-<td width="50%"><img src="docs/screenshots/proof.png" alt="The proof panel showing the raw ciphertext IPFS serves" /></td>
-</tr>
-<tr>
-<td><b>Verification</b> — no account, no wallet, no permission from the issuer. The verdict is read straight from the contract.</td>
-<td><b>Proof panel</b> — every screen can show its own evidence: document hash, IPFS CID, contract, and the raw ciphertext beside what the key reveals.</td>
-</tr>
-</table>
+Institutions can issue credentials bound to a real document. The document is hashed in
+the browser using `keccak256`; the file itself is not uploaded as part of hashing. A
+credential can be accepted or rejected by its holder and can later be revoked or
+reinstated by the issuing institution according to the contract rules.
 
-![The three-party model and the inline chain query, in dark mode](docs/screenshots/model-dark.png)
+### Privacy-preserving metadata
 
-## How this compares to DigiLocker
+Credential metadata is encrypted with AES-256-GCM before being sent to IPFS. The
+encryption key is not written to the blockchain or stored in IPFS. Share links and QR
+payloads carry the key in the URL fragment, which is not sent to normal server logs.
 
-Worth being clear-eyed about, because they solve overlapping but different problems and
-the honest list is shorter than the marketing one.
+### Public verification
 
-**No advantage — a digital signature already does this**
+Anyone can use the verifier without an administrative account. A verifier may paste a
+share payload, scan a QR code, or enter the required values manually. The application
+checks the blockchain record, credential status, expiry, issuer information, and
+document hash before presenting the result.
 
-- **Tamper-evidence.** DigiLocker issues digitally signed documents, and a signature detects any byte change just as well as a hash on a ledger does. This is not a differentiator, and claiming it would be dishonest.
+### Auditable administration
 
-**Where CredVault is genuinely different**
+The administrator workspace supports role assignment, permission configuration,
+identity administration, system pause/unpause, and audit-log inspection. The auditor
+workspace provides read-only views of identities, assets, ownership, transfers, and
+blockchain activity.
 
-- **Verification needs no permission and no server.** An employer anywhere reads the record from a public chain. DigiLocker verification depends on a central service being online and choosing to answer.
-- **Revocation status is publicly auditable.** Every revoke and reinstate is a timestamped, attributable event anyone can inspect. A central database can change a record with no external trace.
-- **It survives the issuer.** If a university shuts down or loses its IT department, its credentials stay verifiable.
-- **The holder gates the contents.** Validity is public; what the credential *says* is readable only by someone the student hands a key to.
-
-**Where DigiLocker is still ahead**
-
-- **Legal standing.** DigiLocker documents are legally equivalent to originals under the IT Act. A testnet record is not.
-- **Identity and recovery.** Aadhaar-linked accounts can be recovered. Lose your wallet key here and the credentials are unreachable.
-- **No wallet, no gas, no chain literacy required** — plus a government-mandated issuer feed no independent project can replicate.
-
-The honest positioning: this is not a DigiLocker replacement. It is an **issuer-independent
-verification layer** — strongest for cross-border checks, for issuers with no government
-feed, and wherever revocation needs to be publicly auditable.
-
-## What this does not solve
-
-- **IPFS pinning is a centralised dependency.** Content addressing guarantees the blob is unaltered, not that anyone is still hosting it. If the pin lapses the details become unreadable — though the on-chain proof of validity survives.
-- **The issuer can always re-derive the key.** `K` comes from a deterministic issuer signature, so an institution can decrypt anything it issued. A deliberate trade for recoverability, not an oversight.
-- **A lost wallet has no operator recovery.** There is no support desk. That is the point, and also the cost.
-- **Sepolia is a testnet.** Nothing here carries legal weight.
-
-## Tech stack
-
-| Layer | Choice |
-| --- | --- |
-| Contract | Solidity 0.8.30, OpenZeppelin v5, Foundry (forge / anvil / cast) |
-| Chain | Sepolia — EVM-compatible, deployable anywhere |
-| Frontend | React 18, TypeScript, Vite, Tailwind, Radix primitives |
-| Chain access | ethers v6 with multi-RPC failover and chunked log queries |
-| Crypto | Web Crypto — AES-256-GCM, HKDF, PBKDF2. No crypto dependency. |
-| Storage | IPFS via a serverless pinning proxy, multi-gateway read failover |
-| Hosting | Vercel — static build plus one edge function |
-
-Type is self-hosted: Geist, JetBrains Mono and Source Serif ship as subsetted `woff2`
-files in the repo. The app renders fully offline and under a strict CSP — no external
-font, script or style origin is ever contacted.
-
-## Project structure
+## 3. How the system works
 
 ```text
-CredVault/
-├── Backend-Contracts/          # Solidity + Foundry (see its README for the threat model)
-│   ├── src/CredentialVault.sol
-│   ├── test/                   # unit, fuzz and invariant suites
-│   └── script/DeployVault.s.sol
-├── api/pin.ts                  # serverless IPFS pinning proxy (holds the Pinata JWT)
-├── scripts/generate-abi.mjs    # derives the frontend ABI from the build artifact
-├── src/
-│   ├── lib/                    # the logic layer — no React in here
-│   │   ├── contract.ts         # addresses, RPC failover, event queries
-│   │   ├── crypto.ts           # AES-GCM + HKDF key derivation
-│   │   ├── documentHash.ts     # keccak256 over file bytes
-│   │   ├── ipfs.ts             # pinning and gateway-resilient fetch
-│   │   ├── credentials.ts      # domain layer over the contract
-│   │   ├── issuance.ts         # the full issue pipeline, stage by stage
-│   │   └── keyVault.ts         # local key storage (keys only, never data)
-│   ├── components/             # presentation, grouped by concern
-│   └── pages/                  # one file per route
-└── vercel.json                 # rewrites, CSP and cache headers
+                       ┌─────────────────────────────┐
+                       │        Credence frontend     │
+                       │ React · TypeScript · Vite    │
+                       └──────────────┬──────────────┘
+                                      │ MetaMask / ethers v6
+                                      ▼
+┌─────────────────┐       ┌─────────────────────────────┐
+│ Connected wallet│──────▶│ Ethereum Sepolia testnet    │
+└─────────────────┘       │                             │
+                          │ Roles & Permissions          │
+                          │ Identity Registry            │
+                          │ Asset NFT                    │
+                          │ Credential Vault              │
+                          │ Credential–Asset Bridge      │
+                          │ Audit Log                    │
+                          └──────────────┬──────────────┘
+                                         │ encrypted metadata URI
+                                         ▼
+                          ┌─────────────────────────────┐
+                          │ IPFS through serverless      │
+                          │ pinning proxy                │
+                          └─────────────────────────────┘
 ```
 
-## Getting started
+### Credential verification flow
+
+```text
+Institution selects document
+          │
+          ├── keccak256(document bytes) ──▶ documentHash on-chain
+          │
+          ├── encrypt metadata with AES-256-GCM
+          │                              │
+          │                              └──▶ IPFS CID / metadata URI
+          │
+          └── issue credential to holder as Pending
+
+Holder accepts credential ──▶ Active record
+
+Verifier reads chain + IPFS ──▶ decrypts metadata ──▶ checks hash, status, and expiry
+```
+
+Verification combines independent checks:
+
+1. The credential record exists and its status is valid.
+2. The supplied document matches the stored `documentHash`.
+3. The encrypted payload can only be read with the key shared by the holder or issuer.
+
+## 4. Role-based workspaces
+
+| Role | Workspace responsibilities |
+| --- | --- |
+| **Platform Admin** | Manage managers and auditors, configure permissions, create and administer identities, pause or unpause the system, and inspect audit activity. |
+| **Manager** | Mint assets, assign assets, transfer ownership, update metadata, link assets to credentials, and review on-chain asset history. |
+| **Auditor** | Read-only access to identities, assets, ownership, transfers, credential-related activity, and audit entries. |
+| **User** | View personal identity, linked wallets, owned or assigned assets, certificates, document status, and verification links. |
+| **Public verifier** | Verify an asset or document without a privileged account or institution-side approval. |
+
+Role resolution follows the connected wallet → identity → role path. Manual role
+selection is not used for privileged access.
+
+## 5. Smart-contract architecture
+
+The backend is implemented in Solidity and deployed as six cooperating contracts:
+
+| Contract | Responsibility |
+| --- | --- |
+| `RolesAndPermissions` | Role membership, permission matrix, administrative controls, and system pause state. |
+| `IdentityRegistry` | DID records, wallet bindings, identity status, organization data, and identity lifecycle events. |
+| `AssetNFT` | Digital asset minting, ownership, assignment, transfers, metadata, and asset status. |
+| `CredentialVault` | Credential issuance, holder acceptance or rejection, expiry, revocation, reinstatement, and issuer registry. |
+| `CredentialAssetBridge` | Links credential records and digital assets for connected verification workflows. |
+| `AuditLog` | Structured, category-based audit entries for important platform actions. |
+
+All state-changing operations are signed by a wallet and recorded as blockchain
+transactions. The frontend reads historical events in chunks and uses RPC failover
+for more reliable Sepolia reads.
+
+## 6. Security and privacy design
+
+- **Document integrity:** `keccak256` is calculated over the actual document bytes.
+- **Encrypted metadata:** AES-256-GCM protects credential metadata before IPFS pinning.
+- **Key derivation:** Web Crypto APIs provide HKDF and PBKDF2 support without adding a cryptographic dependency.
+- **Holder consent:** credentials begin in `Pending` status and require holder action before activation.
+- **Issuer accountability:** issuer identity, credential status changes, and administrative actions are attributable on-chain.
+- **Role enforcement:** privileged operations are checked by Solidity contracts, not only by UI visibility.
+- **Key backup:** holder keys can be exported in a passphrase-protected backup using PBKDF2.
+- **Share-link privacy:** the decryption key is carried in the URL fragment, which browsers do not transmit in HTTP requests.
+- **Read-only auditing:** auditor access is designed for inspection without state-changing permissions.
+
+### Important limitations
+
+Credence is deliberately transparent about its current boundaries:
+
+- Sepolia is a test network and does not provide legal validity.
+- IPFS content remains available only while the relevant content is pinned or otherwise hosted by a gateway.
+- A lost wallet or lost key backup can make a holder’s credential data inaccessible.
+- The issuer can re-derive keys for credentials it issued; this is a recoverability trade-off in the current prototype.
+- The issuer registry still requires responsible administrative governance.
+- A QR code or share link gives its recipient access to the information represented by that key; sharing is therefore a consent decision by the holder.
+
+The detailed contract threat model and credential lifecycle documentation are available
+in [`Backend-Contracts/README.md`](Backend-Contracts/README.md).
+
+## 7. Technology stack
+
+| Layer | Technologies |
+| --- | --- |
+| Frontend | React 18, TypeScript, Vite, React Router, TanStack Query |
+| UI | Tailwind CSS, Radix UI primitives, Lucide icons, responsive layouts, light/dark theme support |
+| Blockchain | Ethereum Sepolia, Solidity 0.8.x, OpenZeppelin Contracts v5, Foundry |
+| Web3 integration | ethers.js v6, MetaMask / EIP-1193 wallet provider |
+| Cryptography | Browser Web Crypto API, AES-256-GCM, HKDF-SHA-256, PBKDF2 |
+| Decentralized storage | IPFS through a serverless Pinata pinning proxy with gateway fallback |
+| Hosting | Vercel static frontend and edge/serverless pinning endpoint |
+| Testing | Vitest, Foundry unit tests, fuzz tests, invariant tests, TypeScript checks, ESLint |
+
+## 8. Repository structure
+
+```text
+Credence/
+├── Backend-Contracts/
+│   ├── src/                    # Solidity platform contracts
+│   ├── test/                   # unit, fuzz, and invariant tests
+│   └── script/                 # deployment scripts
+├── api/pin.ts                  # server-side IPFS pinning proxy
+├── src/
+│   ├── pages/                  # public, credential, and SIH workspaces
+│   │   └── sih/                # admin, manager, auditor, and user dashboards
+│   ├── components/             # reusable UI, verification, issuance, and data components
+│   ├── hooks/                  # wallet, SIH context, chain, and UI hooks
+│   └── lib/                    # contracts, crypto, issuance, hashing, IPFS, and domain logic
+├── docs/                       # testing walkthrough and screenshots
+├── scripts/                    # ABI generation utilities
+├── .env.example                # deployment and frontend configuration template
+└── README.md
+```
+
+## 9. Run the project locally
+
+### Prerequisites
+
+- Node.js 20.19 or newer
+- npm
+- Foundry, if compiling or testing the Solidity contracts
+- MetaMask or another EIP-1193 Ethereum wallet for transaction flows
+- Sepolia ETH for signed testnet transactions
+
+### Frontend setup
 
 ```bash
 git clone https://github.com/rkhooda/CredVault.git
@@ -183,130 +263,94 @@ npm install
 npm run dev
 ```
 
-Copy `.env.example` to `.env.local` if you are pointing at your own deployment. The
-defaults target the live Sepolia contract, so **verification works with no configuration
-at all** — issuance is the only flow that needs a wallet and a pinning endpoint.
+The repository includes Sepolia contract defaults for the current demonstration
+deployment. Copy `.env.example` to `.env.local` when using another deployment or
+custom RPC/pinning endpoint. Never expose a private key through a `VITE_` variable.
 
-To exercise the whole thing — issue, accept, share, verify, revoke, reinstate — follow
-[**CredVault-Testing-Walkthrough.pdf**](docs/CredVault-Testing-Walkthrough.pdf). It sets
-up the two wallets, gives you a credential you can verify with no wallet at all, and
-explains the one part people reliably trip on: the claim code is not a login, it is the
-key that makes a credential *readable*.
+### Available application routes
 
-### Tests
+| Route | Purpose |
+| --- | --- |
+| `/` | Project landing page and platform overview |
+| `/sih-portal` | Wallet connection and on-chain SIH role resolution |
+| `/admin` | Administrator workspace |
+| `/manager` | Asset manager workspace |
+| `/auditor` | Read-only audit and verification workspace |
+| `/user` | User identity, assets, and certificates workspace |
+| `/verify` | Public asset and document verifier |
+| `/institution-portal` | Credential issuer flow |
+| `/student-portal` | Credential holder flow |
 
-```bash
-npm test                     # 18 vitest cases over the crypto layer
-npm run typecheck            # tsc --noEmit
-npm run lint
-
-npm run contract:test        # 56 Foundry tests
-npm run contract:coverage    # 100% line, branch and function
-```
-
-### Contracts
+## 10. Development and verification commands
 
 ```bash
-npm run contract:build
-npm run contract:abi         # regenerate the frontend ABI after a contract change
-npm run contract:deploy      # needs SEPOLIA_RPC_URL and a funded deployer
-npm run contract:verify      # needs ETHERSCAN_API_KEY and CONTRACT_ADDRESS
-```
-
-`npm run contract:deploy` runs `DeployAll.s.sol` and deploys the complete SIH
-platform in this order: RolesAndPermissions, IdentityRegistry, AssetNFT,
-CredentialVault, CredentialAssetBridge, AuditLog. It requires `SEPOLIA_RPC_URL`
-and `PRIVATE_KEY`, plus optional `ADMIN_ADDRESS`, `INITIAL_MANAGER_ADDRESS`,
-`INITIAL_AUDITOR_ADDRESS`, and `INITIAL_ISSUER_ADDRESS` values.
-
-`ADMIN_ADDRESS` must match the deployer because the deployment script performs
-the initial role configuration in the same broadcast. The script prints all six
-addresses and Foundry saves the transaction record under
-`Backend-Contracts/broadcast/DeployAll.s.sol/11155111/run-latest.json`.
-
-Use an ignored local environment file or shell exports; never commit a real key.
-
-Example frontend setup after deployment:
-
-```bash
-cp .env.example .env.local
-# Set VITE_CHAIN_ID and all six VITE_*_ADDRESS values in .env.local.
+# Frontend
 npm run dev
+npm run build
+npm run typecheck
+npm run lint
+npm test
+
+# Smart contracts
+npm run contract:build
+npm run contract:test
+npm run contract:coverage
+npm run contract:abi
 ```
 
-Deployment checklist:
-
-1. Configure `SEPOLIA_RPC_URL` and deployer access.
-2. Fund the deployer with Sepolia ETH.
-3. Run `npm run contract:deploy`.
-4. Capture the six printed contract addresses.
-5. Configure the six `VITE_*_ADDRESS` values in `.env.local` or hosting build settings.
-6. Run `npm run contract:abi`, `npm run build`, and start the frontend.
-7. Connect the Admin wallet and run the SIH identity, asset, credential, and audit smoke test.
-
-### Authorising another institution
-
-`ISSUER_ROLE` lives on the contract, not in this repository — a wallet gets it with one
-admin-signed transaction, and until then the institution portal refuses it at the door.
-Run this from the wallet holding `DEFAULT_ADMIN_ROLE`:
+To deploy the complete SIH contract suite to Sepolia, configure the deployment
+variables from `.env.example` and run:
 
 ```bash
-cast send 0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3 \
-  "registerIssuer(address,string,string,string)" \
-  <ISSUER_ADDRESS> "Institution Name" "ACCREDITATION-ID" "https://institution.example" \
-  --rpc-url "$SEPOLIA_RPC_URL" --account deployer
+npm run contract:deploy
 ```
 
-Both accounts need Sepolia ETH for gas. `deregisterIssuer(address)` reverses it; credentials
-already issued stay valid. Without a local Foundry setup the same call is available from the
-verified source on
-[Blockscout](https://eth-sepolia.blockscout.com/address/0x26Eb4c3f71ab6735e6c4b5a04D88fa902c46C8B3?tab=write_contract),
-signed with MetaMask.
+The deployment script creates the contracts in dependency order:
 
-## Deployment
+`RolesAndPermissions → IdentityRegistry → AssetNFT → CredentialVault → CredentialAssetBridge → AuditLog`
 
-The app is a static build plus one edge function, deployed on **Vercel**.
+After deployment, place the six printed addresses in the frontend environment, run
+`npm run contract:abi`, build the frontend, and complete a smoke test for identity,
+roles, assets, credentials, verification, and audit logs.
 
-```bash
-npm run build     # -> dist/
-```
+## 11. Current Sepolia deployment
 
-`vercel.json` handles SPA rewrites, long-lived asset caching, and a CSP that names every
-origin the app talks to — three Sepolia RPCs and four IPFS gateways.
+The frontend is configured with the following verified demonstration deployment:
 
-Environment variables to set in the Vercel project:
+| Contract | Address |
+| --- | --- |
+| Roles and Permissions | [`0xe0dc09c754ff95a48c960e9280650717284cd2e8`](https://sepolia.etherscan.io/address/0xe0dc09c754ff95a48c960e9280650717284cd2e8) |
+| Identity Registry | [`0x77f634771ca157e31aea0c0a8cd19a7cc0b2a691`](https://sepolia.etherscan.io/address/0x77f634771ca157e31aea0c0a8cd19a7cc0b2a691) |
+| Asset NFT | [`0x098e6d74ad964bfb098673673f1327670117dbfa`](https://sepolia.etherscan.io/address/0x098e6d74ad964bfb098673673f1327670117dbfa) |
+| Credential Vault | [`0x68633ecea55e90f48922290dc9610cb6d32aabe5`](https://sepolia.etherscan.io/address/0x68633ecea55e90f48922290dc9610cb6d32aabe5) |
+| Credential–Asset Bridge | [`0x68faf69679e628d6050826466dc7ad67a0bcdc07`](https://sepolia.etherscan.io/address/0x68faf69679e628d6050826466dc7ad67a0bcdc07) |
+| Audit Log | [`0xd7df9fb0a541b0e9e6ad2c6d4bd0800754046873`](https://sepolia.etherscan.io/address/0xd7df9fb0a541b0e9e6ad2c6d4bd0800754046873) |
 
-| Variable | Scope | Purpose |
-| --- | --- | --- |
-| `PINATA_JWT` | server | Pinata key with `pinJSONToIPFS`. Never expose this as a `VITE_` variable. |
-| `ALLOWED_ORIGIN` | server | Locks the pinning proxy to your own origin. Defaults to `*`, which lets anyone spend your Pinata quota. |
-| `VITE_PIN_ENDPOINT` | build | Defaults to `/api/pin` — correct when the app and function share a host. |
-| `VITE_CHAIN_ID` | build | Target chain ID; `11155111` for Sepolia. |
-| `VITE_ROLES_AND_PERMISSIONS_ADDRESS` | build | Deployed SIH RBAC contract. |
-| `VITE_IDENTITY_REGISTRY_ADDRESS` | build | Deployed SIH identity contract. |
-| `VITE_ASSET_NFT_ADDRESS` | build | Deployed SIH asset contract. |
-| `VITE_CREDENTIAL_VAULT_ADDRESS` | build | Deployed credential contract. |
-| `VITE_CREDENTIAL_ASSET_BRIDGE_ADDRESS` | build | Deployed credential/asset bridge. |
-| `VITE_AUDIT_LOG_ADDRESS` | build | Deployed audit log contract. |
-| `VITE_RPC_URL` | build | Optional preferred RPC. Must serve historical `eth_getLogs`. |
+These addresses are intended for demonstration and evaluation. A fresh deployment
+should be used for production or any environment requiring independent governance.
 
-The legacy CredentialVault deployment documented elsewhere in this repository is
-not the six-contract SIH deployment. After running `DeployAll`, use the six
-addresses printed by the script in the frontend environment; do not reuse a
-legacy address for an SIH contract.
+## 12. Demonstration material
 
-## Security
+- [End-to-end testing walkthrough](docs/CredVault-Testing-Walkthrough.pdf)
+- [Testing walkthrough source](docs/Testing-Walkthrough.html)
+- [Verification screen](docs/screenshots/verify.png)
+- [Proof panel](docs/screenshots/proof.png)
+- [Landing page](docs/screenshots/landing.png)
+- [Dark-mode platform model](docs/screenshots/model-dark.png)
 
-The chain answers *"is this valid?"*; an encrypted IPFS blob answers *"what does it
-say?"*. The key that opens it is never on-chain and never on IPFS. Share links carry the
-key in the URL **fragment**, which browsers do not transmit to servers — so a scanned
-credential never lands in an access log.
+## 13. Project status
 
-Full architecture, threat model, key-management trade-offs and known limitations are in
-[`Backend-Contracts/README.md`](Backend-Contracts/README.md).
+Credence currently provides a functional prototype covering the primary SIH
+demonstration flow: wallet connection, identity and role resolution, role-based
+workspaces, on-chain asset management, credential issuance and consent, encrypted
+metadata, public verification, and audit inspection.
+
+Future production work would include formal institutional governance, stronger key
+recovery and rotation, persistent IPFS pinning guarantees, privacy-preserving identity
+attestations, multi-network deployment, and independent security audits.
 
 ## Licence
 
 MIT — see [LICENSE](LICENSE).
 
-<div align="center"><sub>Built by <a href="https://github.com/rkhooda">rkhooda</a></sub></div>
+<div align="center"><sub>Built for Smart India Hackathon · Credence</sub></div>
