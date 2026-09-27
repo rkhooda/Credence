@@ -7,7 +7,7 @@ export type WalletRole = "student" | "institution" | "sih";
 export const WALLET_STORAGE_KEY: Record<WalletRole, string> = {
   student: "credvault_student_wallet",
   institution: "credvault_institution_wallet",
-  sih: "credence_sih_wallet",
+  sih: "credvault_sih_wallet",
 };
 
 /** Minimal EIP-1193 event surface; ethers' type only models `request`. */

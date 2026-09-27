@@ -1,21 +1,21 @@
 <div align="center">
 
-<img src="src/assets/logo.png" width="88" alt="Credence logo" />
+<img src="src/assets/logo.png" width="88" alt="CredVault logo" />
 
-# Credence
+# CredVault
 
 ### A blockchain-based platform for trusted identities, digital assets, and verifiable credentials
 
-Credence is a Smart India Hackathon project that uses decentralized identity,
+CredVault is a Smart India Hackathon project that uses decentralized identity,
 role-based access control, blockchain asset records, encrypted document storage,
 and public verification to create a transparent and tamper-evident digital trust
 layer for institutions and their users.
 
-[![Live demo](https://img.shields.io/badge/Live_demo-Vercel-111827?style=flat-square&logo=vercel)](https://cred-vaulte.vercel.app)
+[![Live demo](https://img.shields.io/badge/Live_demo-Vercel-111827?style=flat-square&logo=vercel)](https://credencevault.vercel.app/)
 [![Network](https://img.shields.io/badge/Network-Sepolia_testnet-627eea?style=flat-square&logo=ethereum&logoColor=white)](https://sepolia.etherscan.io)
 [![License](https://img.shields.io/badge/License-MIT-2f855a?style=flat-square)](LICENSE)
 
-**[Open the live demo](https://cred-vaulte.vercel.app)** · **[Open the public verifier](https://cred-vaulte.vercel.app/#/verify)** · **[Read the contract documentation](Backend-Contracts/README.md)**
+**[Open the live demo](https://credencevault.vercel.app/)** · **[Open the public verifier](https://credencevault.vercel.app/#/verify)** · **[Read the contract documentation](Backend-Contracts/README.md)**
 
 </div>
 
@@ -34,7 +34,7 @@ creates several practical problems:
 - Permissions are frequently managed by application logic instead of an independently verifiable authority.
 - Sensitive document content must be protected while still allowing authenticity to be checked.
 
-Credence addresses these problems by placing authoritative state transitions and
+CredVault addresses these problems by placing authoritative state transitions and
 verification data on Ethereum while keeping sensitive metadata encrypted off-chain.
 The platform is designed around a simple principle:
 
@@ -107,7 +107,7 @@ blockchain activity.
 
 ```text
                        ┌─────────────────────────────┐
-                       │        Credence frontend     │
+                       │        CredVault frontend    │
                        │ React · TypeScript · Vite    │
                        └──────────────┬──────────────┘
                                       │ MetaMask / ethers v6
@@ -198,7 +198,7 @@ for more reliable Sepolia reads.
 
 ### Important limitations
 
-Credence is deliberately transparent about its current boundaries:
+CredVault is deliberately transparent about its current boundaries:
 
 - Sepolia is a test network and does not provide legal validity.
 - IPFS content remains available only while the relevant content is pinned or otherwise hosted by a gateway.
@@ -226,7 +226,7 @@ in [`Backend-Contracts/README.md`](Backend-Contracts/README.md).
 ## 8. Repository structure
 
 ```text
-Credence/
+CredVault/
 ├── Backend-Contracts/
 │   ├── src/                    # Solidity platform contracts
 │   ├── test/                   # unit, fuzz, and invariant tests
@@ -340,7 +340,7 @@ should be used for production or any environment requiring independent governanc
 
 ## 13. Project status
 
-Credence currently provides a functional prototype covering the primary SIH
+CredVault currently provides a functional prototype covering the primary SIH
 demonstration flow: wallet connection, identity and role resolution, role-based
 workspaces, on-chain asset management, credential issuance and consent, encrypted
 metadata, public verification, and audit inspection.
@@ -353,4 +353,4 @@ attestations, multi-network deployment, and independent security audits.
 
 MIT — see [LICENSE](LICENSE).
 
-<div align="center"><sub>Built for Smart India Hackathon · Credence</sub></div>
+<div align="center"><sub>Built for Smart India Hackathon · CredVault</sub></div>

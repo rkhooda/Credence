@@ -6,7 +6,7 @@
   "description": "Verifiable academic credentials on Ethereum. The chain proves the credential, a keccak256 hash binds it to the document, and the holder keeps the only key that reads it.",
   "author": "Rakshit Hooda <sewakunjtechnologies@gmail.com> (https://github.com/rkhooda)",
   "license": "MIT",
-  "homepage": "https://cred-vaulte.vercel.app",
+  "homepage": "https://credencevault.vercel.app/",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/rkhooda/CredVault.git"
