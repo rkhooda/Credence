@@ -15,7 +15,7 @@ layer for institutions and their users.
 [![Network](https://img.shields.io/badge/Network-Sepolia_testnet-627eea?style=flat-square&logo=ethereum&logoColor=white)](https://sepolia.etherscan.io)
 [![License](https://img.shields.io/badge/License-MIT-2f855a?style=flat-square)](LICENSE)
 
-**[Open the live demo](https://credencevault.vercel.app/)** · **[Open the public verifier](https://credencevault.vercel.app/#/verify)** · **[Read the contract documentation](Backend-Contracts/README.md)**
+**[Open the live demo](https://credencevault.vercel.app/)** · **[Watch the SIH demo video](https://youtu.be/AMMgb_5i0ac)** · **[Open the public verifier](https://credencevault.vercel.app/#/verify)** · **[Read the contract documentation](Backend-Contracts/README.md)**
 
 </div>
 
@@ -329,7 +329,32 @@ The frontend is configured with the following verified demonstration deployment:
 These addresses are intended for demonstration and evaluation. A fresh deployment
 should be used for production or any environment requiring independent governance.
 
-## 12. Demonstration material
+## 12. SIH demonstration
+
+### Project walkthrough
+
+This short demo explains the problem CredVault addresses and walks through the
+main Smart India Hackathon flow: wallet-based identity, role-based workspaces,
+digital asset management, credential issuance, encrypted metadata, public
+verification, and auditability.
+
+<div align="center">
+
+<a href="https://youtu.be/AMMgb_5i0ac">
+  <img src="https://img.youtube.com/vi/AMMgb_5i0ac/maxresdefault.jpg" width="720" alt="Watch the CredVault Smart India Hackathon project demo video" />
+</a>
+
+<br />
+
+<strong><a href="https://youtu.be/AMMgb_5i0ac">▶ Watch the CredVault SIH project demo on YouTube</a></strong>
+
+</div>
+
+The video is intended as a quick product overview for SIH evaluators and can be
+viewed alongside the [live demo](https://credencevault.vercel.app/) and the
+[public verifier](https://credencevault.vercel.app/#/verify).
+
+### Supporting demonstration material
 
 - [End-to-end testing walkthrough](docs/CredVault-Testing-Walkthrough.pdf)
 - [Testing walkthrough source](docs/Testing-Walkthrough.html)
