@@ -153,6 +153,9 @@ contract RolesAndPermissions is AccessControlEnumerable, Pausable {
      */
     function requirePermission(Permission permission) internal view {
         bytes32 role = _getCallerRole();
+        if (role == bytes32(0) && !hasRole(DEFAULT_ADMIN_ROLE, msg.sender)) {
+            revert PermissionDenied(role, permission);
+        }
         if (!hasPermission(role, permission)) {
             revert PermissionDenied(role, permission);
         }
@@ -316,7 +319,8 @@ contract RolesAndPermissions is AccessControlEnumerable, Pausable {
 
     /// @notice Check if caller is at least an Auditor.
     function isAtLeastAuditor() external view returns (bool) {
-        return hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(MANAGER_ROLE, msg.sender) || hasRole(AUDITOR_ROLE, msg.sender);
+        return hasRole(DEFAULT_ADMIN_ROLE, msg.sender) || hasRole(MANAGER_ROLE, msg.sender)
+            || hasRole(AUDITOR_ROLE, msg.sender);
     }
 
     /// @notice Check if caller is an Admin.

@@ -54,25 +54,15 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
     // --- Events ---
 
     event CredentialLinkedToAsset(
-        bytes32 indexed documentHash,
-        uint256 indexed tokenId,
-        address indexed holder,
-        uint48 timestamp
+        bytes32 indexed documentHash, uint256 indexed tokenId, address indexed holder, uint48 timestamp
     );
     event AssetLinkedToCredential(
-        uint256 indexed tokenId,
-        bytes32 indexed documentHash,
-        address indexed holder,
-        uint48 timestamp
+        uint256 indexed tokenId, bytes32 indexed documentHash, address indexed holder, uint48 timestamp
     );
 
     // --- Constructor ---
 
-    constructor(
-        address initialAdmin,
-        CredentialVault _credentialVault,
-        AssetNFT _assetNFT
-    ) {
+    constructor(address initialAdmin, CredentialVault _credentialVault, AssetNFT _assetNFT) {
         if (initialAdmin == address(0)) revert ZeroAddress();
         if (address(_credentialVault) == address(0)) revert ZeroAddress();
         if (address(_assetNFT) == address(0)) revert ZeroAddress();
@@ -110,10 +100,10 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
 
         // Mint asset
         uint256 tokenId = assetNFT.mintAsset(
-            assetType,
-            holder,           // owner
-            holder,           // assignee (initially same)
-            "",               // DID - could be fetched from IdentityRegistry
+            uint8(assetType),
+            holder, // owner
+            holder, // assignee (initially same)
+            "", // DID - could be fetched from IdentityRegistry
             metadataURI
         );
 
@@ -132,11 +122,10 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
      * @param holder       The credential holder.
      * @param documentHash The credential's document hash.
      */
-    function linkAssetToCredential(
-        uint256 tokenId,
-        address holder,
-        bytes32 documentHash
-    ) external onlyRole(BRIDGE_MANAGER_ROLE) {
+    function linkAssetToCredential(uint256 tokenId, address holder, bytes32 documentHash)
+        external
+        onlyRole(BRIDGE_MANAGER_ROLE)
+    {
         // Verify asset exists and is owned by holder
         AssetNFT.AssetView memory assetView = assetNFT.getAsset(tokenId);
         if (!assetView.exists) revert AssetNotFound();
@@ -184,11 +173,7 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
     function getCredentialAssetView(address holder, bytes32 documentHash)
         external
         view
-        returns (
-            CredentialVault.CredentialView memory credView,
-            AssetNFT.AssetView memory assetView,
-            bool linked
-        )
+        returns (CredentialVault.CredentialView memory credView, AssetNFT.AssetView memory assetView, bool linked)
     {
         credView = credentialVault.verifyCredential(holder, documentHash);
         uint256 tokenId = credentialToAsset[documentHash];
@@ -200,11 +185,19 @@ contract CredentialAssetBridge is AccessControlEnumerable, Pausable {
 
     // --- Role Management ---
 
-    function grantRole(bytes32 role, address account) public override(AccessControl, IAccessControl) onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantRole(bytes32 role, address account)
+        public
+        override(AccessControl, IAccessControl)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         super.grantRole(role, account);
     }
 
-    function revokeRole(bytes32 role, address account) public override(AccessControl, IAccessControl) onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeRole(bytes32 role, address account)
+        public
+        override(AccessControl, IAccessControl)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         super.revokeRole(role, account);
     }
 

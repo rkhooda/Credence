@@ -100,7 +100,9 @@ contract IdentityRegistryTest is Test {
 
     function test_RevertWhen_NonManagerCreates() public {
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, RANDOM, registry.IDENTITY_MANAGER_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, RANDOM, registry.IDENTITY_MANAGER_ROLE()
+            )
         );
         vm.prank(RANDOM);
         registry.createIdentity(DID_1, USER1, NAME_1, ORG_1, ROLE_1, METADATA_URI);
@@ -245,7 +247,9 @@ contract IdentityRegistryTest is Test {
 
         // _changeStatus emits first, then IdentityVerified
         vm.expectEmit(true, true, false, true);
-        emit IdentityRegistry.IdentityStatusChanged(DID_1, IdentityRegistry.IdentityStatus.Created, IdentityRegistry.IdentityStatus.Verified, 1_700_000_000);
+        emit IdentityRegistry.IdentityStatusChanged(
+            DID_1, IdentityRegistry.IdentityStatus.Created, IdentityRegistry.IdentityStatus.Verified, 1_700_000_000
+        );
 
         vm.expectEmit(true, true, false, true);
         emit IdentityRegistry.IdentityVerified(DID_1, MANAGER, 1_700_000_000);
@@ -279,7 +283,9 @@ contract IdentityRegistryTest is Test {
     function test_RevertWhen_NonManagerVerifies() public {
         _createIdentity(DID_1, USER1, NAME_1);
         vm.expectRevert(
-            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, RANDOM, registry.IDENTITY_MANAGER_ROLE())
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, RANDOM, registry.IDENTITY_MANAGER_ROLE()
+            )
         );
         vm.prank(RANDOM);
         registry.verifyIdentity(DID_1);

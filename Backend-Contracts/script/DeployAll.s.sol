@@ -45,14 +45,10 @@ contract DeployAll is Script {
     string public initialIssuerAccreditation;
     string public initialIssuerWebsite;
 
-    function run() external returns (
-        RolesAndPermissions,
-        IdentityRegistry,
-        AssetNFT,
-        CredentialVault,
-        CredentialAssetBridge,
-        AuditLog
-    ) {
+    function run()
+        external
+        returns (RolesAndPermissions, IdentityRegistry, AssetNFT, CredentialVault, CredentialAssetBridge, AuditLog)
+    {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(deployerKey);
 
@@ -64,10 +60,10 @@ contract DeployAll is Script {
 
         string memory issuerName = vm.envOr("INITIAL_ISSUER_NAME", string("SIH Demo University"));
         initialIssuerName = bytes(issuerName).length > 0 ? issuerName : "SIH Demo University";
-        
+
         string memory issuerAccreditation = vm.envOr("INITIAL_ISSUER_ACCREDITATION", string("SIH-ACCREDITATION"));
         initialIssuerAccreditation = issuerAccreditation;
-        
+
         string memory issuerWebsite = vm.envOr("INITIAL_ISSUER_WEBSITE", string("https://sih.example"));
         initialIssuerWebsite = issuerWebsite;
 
@@ -102,7 +98,9 @@ contract DeployAll is Script {
         console.log("IdentityRegistry:", address(identityRegistry));
 
         identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), admin);
-        if (initialManager != address(0)) identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), initialManager);
+        if (initialManager != address(0)) {
+            identityRegistry.grantRole(identityRegistry.IDENTITY_MANAGER_ROLE(), initialManager);
+        }
         if (initialAuditor != address(0)) identityRegistry.grantRole(identityRegistry.AUDITOR_ROLE(), initialAuditor);
 
         // 3. Deploy AssetNFT
@@ -127,7 +125,9 @@ contract DeployAll is Script {
         console.log("CredentialVault:", address(credentialVault));
 
         // Register initial issuer
-        credentialVault.registerIssuer(initialIssuer, initialIssuerName, initialIssuerAccreditation, initialIssuerWebsite);
+        credentialVault.registerIssuer(
+            initialIssuer, initialIssuerName, initialIssuerAccreditation, initialIssuerWebsite
+        );
         console.log("Registered initial issuer:", initialIssuer);
 
         // 5. Deploy CredentialAssetBridge

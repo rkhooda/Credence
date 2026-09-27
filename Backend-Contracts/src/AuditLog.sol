@@ -75,10 +75,10 @@ contract AuditLog is AccessControlEnumerable, Pausable {
     struct AuditEntry {
         uint256 index;
         ActionCategory category;
-        address actor;              // Who performed the action
-        address target;             // Primary target address (if applicable)
-        bytes32 targetHash;         // Target identifier (tokenId, documentHash, DID, etc.)
-        string details;             // Human-readable details / JSON
+        address actor; // Who performed the action
+        address target; // Primary target address (if applicable)
+        bytes32 targetHash; // Target identifier (tokenId, documentHash, DID, etc.)
+        string details; // Human-readable details / JSON
         uint48 timestamp;
         uint256 blockNumber;
         bytes32 txHash;
@@ -150,13 +150,12 @@ contract AuditLog is AccessControlEnumerable, Pausable {
      * @param targetHash  The target identifier (tokenId, documentHash, DID, etc.).
      * @param details     Human-readable details or JSON.
      */
-    function log(
-        ActionCategory category,
-        address actor,
-        address target,
-        bytes32 targetHash,
-        string memory details
-    ) internal onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused returns (uint256) {
+    function log(ActionCategory category, address actor, address target, bytes32 targetHash, string memory details)
+        internal
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenNotPaused
+        returns (uint256)
+    {
         uint256 index = entries.length;
 
         AuditEntry memory entry = AuditEntry({
@@ -186,12 +185,11 @@ contract AuditLog is AccessControlEnumerable, Pausable {
 
     // --- Convenience Logging Functions ---
 
-    function logIdentityCreated(
-        address actor,
-        string calldata did,
-        address wallet,
-        string calldata name
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    function logIdentityCreated(address actor, string calldata did, address wallet, string calldata name)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenNotPaused
+    {
         log(
             ActionCategory.IdentityCreated,
             actor,
@@ -201,27 +199,29 @@ contract AuditLog is AccessControlEnumerable, Pausable {
         );
     }
 
-    function logAssetMinted(
-        address actor,
-        uint256 tokenId,
-        AssetNFT.AssetType assetType,
-        address owner
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    function logAssetMinted(address actor, uint256 tokenId, AssetNFT.AssetType assetType, address owner)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenNotPaused
+    {
         log(
             ActionCategory.AssetMinted,
             actor,
             owner,
             bytes32(tokenId),
-            string(abi.encodePacked("Minted asset #", Strings.toString(tokenId), " type: ", Strings.toString(uint256(assetType))))
+            string(
+                abi.encodePacked(
+                    "Minted asset #", Strings.toString(tokenId), " type: ", Strings.toString(uint256(assetType))
+                )
+            )
         );
     }
 
-    function logCredentialIssued(
-        address actor,
-        address holder,
-        bytes32 documentHash,
-        string calldata title
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) whenNotPaused {
+    function logCredentialIssued(address actor, address holder, bytes32 documentHash, string calldata title)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+        whenNotPaused
+    {
         log(
             ActionCategory.CredentialIssued,
             actor,
@@ -258,25 +258,41 @@ contract AuditLog is AccessControlEnumerable, Pausable {
     }
 
     /// @notice Query entries by actor.
-    function getEntriesByActor(address actor, uint256 limit, uint256 offset) external view returns (AuditEntry[] memory) {
+    function getEntriesByActor(address actor, uint256 limit, uint256 offset)
+        external
+        view
+        returns (AuditEntry[] memory)
+    {
         uint256[] storage indices = actorIndex[actor];
         return _getEntriesFromIndices(indices, limit, offset);
     }
 
     /// @notice Query entries by target address.
-    function getEntriesByTarget(address target, uint256 limit, uint256 offset) external view returns (AuditEntry[] memory) {
+    function getEntriesByTarget(address target, uint256 limit, uint256 offset)
+        external
+        view
+        returns (AuditEntry[] memory)
+    {
         uint256[] storage indices = targetIndex[target];
         return _getEntriesFromIndices(indices, limit, offset);
     }
 
     /// @notice Query entries by category.
-    function getEntriesByCategory(ActionCategory category, uint256 limit, uint256 offset) external view returns (AuditEntry[] memory) {
+    function getEntriesByCategory(ActionCategory category, uint256 limit, uint256 offset)
+        external
+        view
+        returns (AuditEntry[] memory)
+    {
         uint256[] storage indices = categoryIndex[category];
         return _getEntriesFromIndices(indices, limit, offset);
     }
 
     /// @notice Query entries by target hash (documentHash, tokenId, DID).
-    function getEntriesByHash(bytes32 targetHash, uint256 limit, uint256 offset) external view returns (AuditEntry[] memory) {
+    function getEntriesByHash(bytes32 targetHash, uint256 limit, uint256 offset)
+        external
+        view
+        returns (AuditEntry[] memory)
+    {
         uint256[] storage indices = hashIndex[targetHash];
         return _getEntriesFromIndices(indices, limit, offset);
     }
@@ -289,7 +305,8 @@ contract AuditLog is AccessControlEnumerable, Pausable {
             indices = actorIndex[filter.actor];
         } else if (filter.target != address(0)) {
             indices = targetIndex[filter.target];
-        } else if (filter.category != ActionCategory.IdentityCreated) { // 0 is valid, check if explicitly set
+        } else if (filter.category != ActionCategory.IdentityCreated) {
+            // 0 is valid, check if explicitly set
             // Can't easily detect if category was set, so use category index if actor/target not set
             indices = categoryIndex[filter.category];
         } else if (filter.targetHash != bytes32(0)) {
@@ -304,11 +321,11 @@ contract AuditLog is AccessControlEnumerable, Pausable {
         }
     }
 
-    function _getEntriesFromIndices(
-        uint256[] storage indices,
-        uint256 limit,
-        uint256 offset
-    ) internal view returns (AuditEntry[] memory) {
+    function _getEntriesFromIndices(uint256[] storage indices, uint256 limit, uint256 offset)
+        internal
+        view
+        returns (AuditEntry[] memory)
+    {
         uint256 start = offset < indices.length ? offset : indices.length;
         uint256 end = (start + limit < indices.length) ? start + limit : indices.length;
         uint256 count = end - start;
@@ -321,10 +338,11 @@ contract AuditLog is AccessControlEnumerable, Pausable {
         return result;
     }
 
-    function _getFilteredEntriesFromIndices(
-        uint256[] storage indices,
-        QueryFilter calldata filter
-    ) internal view returns (AuditEntry[] memory) {
+    function _getFilteredEntriesFromIndices(uint256[] storage indices, QueryFilter calldata filter)
+        internal
+        view
+        returns (AuditEntry[] memory)
+    {
         AuditEntry[] memory temp = new AuditEntry[](indices.length);
         uint256 count = 0;
 
@@ -357,10 +375,11 @@ contract AuditLog is AccessControlEnumerable, Pausable {
         return result;
     }
 
-    function _getFilteredEntriesFromIndicesMemory(
-        uint256[] memory indices,
-        QueryFilter calldata filter
-    ) internal view returns (AuditEntry[] memory) {
+    function _getFilteredEntriesFromIndicesMemory(uint256[] memory indices, QueryFilter calldata filter)
+        internal
+        view
+        returns (AuditEntry[] memory)
+    {
         AuditEntry[] memory temp = new AuditEntry[](indices.length);
         uint256 count = 0;
 
@@ -395,11 +414,19 @@ contract AuditLog is AccessControlEnumerable, Pausable {
 
     // --- Role Management ---
 
-    function grantRole(bytes32 role, address account) public override(AccessControl, IAccessControl) onlyRole(DEFAULT_ADMIN_ROLE) {
+    function grantRole(bytes32 role, address account)
+        public
+        override(AccessControl, IAccessControl)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         super.grantRole(role, account);
     }
 
-    function revokeRole(bytes32 role, address account) public override(AccessControl, IAccessControl) onlyRole(DEFAULT_ADMIN_ROLE) {
+    function revokeRole(bytes32 role, address account)
+        public
+        override(AccessControl, IAccessControl)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         super.revokeRole(role, account);
     }
 

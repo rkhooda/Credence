@@ -16,7 +16,8 @@ contract RolesAndPermissionsTest is Test {
     address public immutable USER2 = vm.addr(0x5);
     address public immutable RANDOM = vm.addr(0x6);
 
-    bytes32 constant DEFAULT_ADMIN_ROLE = keccak256("DEFAULT_ADMIN_ROLE");
+    bytes32 constant DEFAULT_ADMIN_ROLE = bytes32(0);
+    bytes32 constant USER_ROLE = keccak256("USER_ROLE");
 
     // Role constants - stored to avoid vm.prank issues with getter calls
     bytes32 managerRole;
@@ -75,10 +76,9 @@ contract RolesAndPermissionsTest is Test {
     }
 
     function test_UserHasNoSpecialPermissions() public {
-        bytes32 userRole = bytes32(0);
         for (uint256 i = 0; i < 16; i++) {
             RolesAndPermissions.Permission perm = RolesAndPermissions.Permission(i);
-            assertFalse(roles.hasPermission(userRole, perm), "User should not have special permissions");
+            assertFalse(roles.hasPermission(USER_ROLE, perm), "User should not have special permissions");
         }
     }
 
@@ -133,15 +133,17 @@ contract RolesAndPermissionsTest is Test {
     }
 
     function test_RevertWhen_GrantingUnsupportedRole() public {
-        vm.expectRevert(RolesAndPermissions.RoleNotSupported.selector);
+        bytes32 unsupportedRole = keccak256("UNSUPPORTED_ROLE");
+        vm.expectRevert(abi.encodeWithSelector(RolesAndPermissions.RoleNotSupported.selector, unsupportedRole));
         vm.prank(ADMIN);
-        roles.grantRole(keccak256("UNSUPPORTED_ROLE"), USER1);
+        roles.grantRole(unsupportedRole, USER1);
     }
 
     function test_RevertWhen_RevokeUnsupportedRole() public {
-        vm.expectRevert(RolesAndPermissions.RoleNotSupported.selector);
+        bytes32 unsupportedRole = keccak256("UNSUPPORTED_ROLE");
+        vm.expectRevert(abi.encodeWithSelector(RolesAndPermissions.RoleNotSupported.selector, unsupportedRole));
         vm.prank(ADMIN);
-        roles.revokeRole(keccak256("UNSUPPORTED_ROLE"), USER1);
+        roles.revokeRole(unsupportedRole, USER1);
     }
 
     // --- Role Queries ---
@@ -246,7 +248,11 @@ contract RolesAndPermissionsTest is Test {
     }
 
     function test_RevertWhen_ManagerPauses() public {
-        vm.expectRevert(RolesAndPermissions.PermissionDenied.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RolesAndPermissions.PermissionDenied.selector, managerRole, RolesAndPermissions.Permission.SystemPause
+            )
+        );
         vm.prank(MANAGER);
         roles.pause();
     }
@@ -256,7 +262,11 @@ contract RolesAndPermissionsTest is Test {
         roles.pause();
         vm.stopPrank();
 
-        vm.expectRevert(RolesAndPermissions.PermissionDenied.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RolesAndPermissions.PermissionDenied.selector, auditorRole, RolesAndPermissions.Permission.SystemUnpause
+            )
+        );
         vm.prank(AUDITOR);
         roles.unpause();
     }
@@ -279,13 +289,23 @@ contract RolesAndPermissionsTest is Test {
     }
 
     function test_RevertWhen_RevokeAdminPermission() public {
-        vm.expectRevert(RolesAndPermissions.PermissionDenied.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RolesAndPermissions.PermissionDenied.selector,
+                DEFAULT_ADMIN_ROLE,
+                RolesAndPermissions.Permission.RoleGrant
+            )
+        );
         vm.prank(ADMIN);
-        roles.revokePermission(keccak256("DEFAULT_ADMIN_ROLE"), RolesAndPermissions.Permission.RoleGrant);
+        roles.revokePermission(DEFAULT_ADMIN_ROLE, RolesAndPermissions.Permission.RoleGrant);
     }
 
     function test_RevertWhen_NonAdminGrantsPermission() public {
-        vm.expectRevert(RolesAndPermissions.PermissionDenied.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RolesAndPermissions.PermissionDenied.selector, managerRole, RolesAndPermissions.Permission.RoleGrant
+            )
+        );
         vm.prank(MANAGER);
         roles.grantPermission(auditorRole, RolesAndPermissions.Permission.AuditReadAll);
     }

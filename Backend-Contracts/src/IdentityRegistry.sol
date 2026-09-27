@@ -26,26 +26,26 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
 
     /// @notice Lifecycle of a digital identity.
     enum IdentityStatus {
-        None,       // Does not exist
-        Created,    // Exists but not verified
-        Verified,   // Verified by authorized verifier
-        Revoked,    // Revoked (compromised, left org, etc.)
-        Suspended   // Temporarily suspended
+        None, // Does not exist
+        Created, // Exists but not verified
+        Verified, // Verified by authorized verifier
+        Revoked, // Revoked (compromised, left org, etc.)
+        Suspended // Temporarily suspended
     }
 
     /// @notice On-chain identity record.
     struct Identity {
-        string did;                    // DID string (e.g., "did:ethr:0x..." or "did:sih:org-123")
-        address[] wallets;             // Wallet addresses authorized to control this identity
-        address primaryWallet;         // Primary wallet for transactions
+        string did; // DID string (e.g., "did:ethr:0x..." or "did:sih:org-123")
+        address[] wallets; // Wallet addresses authorized to control this identity
+        address primaryWallet; // Primary wallet for transactions
         IdentityStatus status;
         uint48 createdAt;
-        uint48 verifiedAt;             // 0 = not verified
-        uint48 revokedAt;              // 0 = not revoked
-        string metadataURI;            // IPFS URI for extended metadata (encrypted)
-        string name;                   // Display name
-        string organization;           // Organization affiliation (if any)
-        string role;                   // Role within organization (employee, student, etc.)
+        uint48 verifiedAt; // 0 = not verified
+        uint48 revokedAt; // 0 = not revoked
+        string metadataURI; // IPFS URI for extended metadata (encrypted)
+        string name; // Display name
+        string organization; // Organization affiliation (if any)
+        string role; // Role within organization (employee, student, etc.)
     }
 
     /// @notice Flattened view for external queries.
@@ -73,8 +73,8 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
 
     // --- Storage ---
 
-    mapping(string => Identity) public identities;           // DID → Identity
-    mapping(address => string[]) public walletDIDs;          // Wallet → DIDs (supports multiple)
+    mapping(string => Identity) public identities; // DID → Identity
+    mapping(address => string[]) public walletDIDs; // Wallet → DIDs (supports multiple)
     mapping(string => mapping(address => WalletBinding)) public walletBindings; // DID → Wallet → Binding
 
     // --- Errors ---
@@ -99,11 +99,7 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
     // --- Events ---
 
     event IdentityCreated(
-        string indexed did,
-        address indexed primaryWallet,
-        string name,
-        string organization,
-        uint48 timestamp
+        string indexed did, address indexed primaryWallet, string name, string organization, uint48 timestamp
     );
     event IdentityVerified(string indexed did, address indexed verifier, uint48 timestamp);
     event IdentityRevoked(string indexed did, address indexed revoker, uint48 timestamp);
@@ -111,9 +107,13 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
     event IdentityReinstated(string indexed did, address indexed reinstater, uint48 timestamp);
     event WalletBound(string indexed did, address indexed wallet, bool isPrimary, uint48 timestamp);
     event WalletUnbound(string indexed did, address indexed wallet, uint48 timestamp);
-    event PrimaryWalletChanged(string indexed did, address indexed oldWallet, address indexed newWallet, uint48 timestamp);
+    event PrimaryWalletChanged(
+        string indexed did, address indexed oldWallet, address indexed newWallet, uint48 timestamp
+    );
     event IdentityMetadataUpdated(string indexed did, string metadataURI, uint48 timestamp);
-    event IdentityStatusChanged(string indexed did, IdentityStatus oldStatus, IdentityStatus newStatus, uint48 timestamp);
+    event IdentityStatusChanged(
+        string indexed did, IdentityStatus oldStatus, IdentityStatus newStatus, uint48 timestamp
+    );
 
     // --- Constructor ---
 
@@ -164,7 +164,8 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
         identity.role = role;
 
         walletDIDs[primaryWallet].push(did);
-        walletBindings[did][primaryWallet] = WalletBinding({did: did, isPrimary: true, boundAt: uint48(block.timestamp)});
+        walletBindings[did][primaryWallet] =
+            WalletBinding({did: did, isPrimary: true, boundAt: uint48(block.timestamp)});
 
         emit IdentityCreated(did, primaryWallet, name, organization, uint48(block.timestamp));
         emit WalletBound(did, primaryWallet, true, uint48(block.timestamp));
@@ -178,11 +179,11 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
      * @param wallet The wallet address to bind.
      * @param isPrimary Whether this wallet becomes the new primary.
      */
-    function bindWallet(
-        string calldata did,
-        address wallet,
-        bool isPrimary
-    ) external onlyRole(IDENTITY_MANAGER_ROLE) whenNotPaused {
+    function bindWallet(string calldata did, address wallet, bool isPrimary)
+        external
+        onlyRole(IDENTITY_MANAGER_ROLE)
+        whenNotPaused
+    {
         Identity storage identity = identities[did];
         if (identity.status == IdentityStatus.None) revert DIDNotFound();
         if (wallet == address(0)) revert ZeroAddress();
@@ -369,7 +370,10 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
      * @param did        The DID.
      * @param metadataURI New IPFS URI for encrypted metadata.
      */
-    function updateMetadataURI(string calldata did, string calldata metadataURI) external onlyRole(IDENTITY_MANAGER_ROLE) {
+    function updateMetadataURI(string calldata did, string calldata metadataURI)
+        external
+        onlyRole(IDENTITY_MANAGER_ROLE)
+    {
         Identity storage identity = identities[did];
         if (identity.status == IdentityStatus.None) revert DIDNotFound();
         if (bytes(metadataURI).length == 0) revert MetadataURIRequired();
@@ -384,7 +388,20 @@ contract IdentityRegistry is AccessControlEnumerable, Pausable {
     function getIdentity(string calldata did) external view returns (IdentityView memory) {
         Identity storage identity = identities[did];
         if (identity.status == IdentityStatus.None) {
-            return IdentityView({exists: false, did: "", primaryWallet: address(0), wallets: new address[](0), status: IdentityStatus.None, createdAt: 0, verifiedAt: 0, revokedAt: 0, metadataURI: "", name: "", organization: "", role: ""});
+            return IdentityView({
+                exists: false,
+                did: "",
+                primaryWallet: address(0),
+                wallets: new address[](0),
+                status: IdentityStatus.None,
+                createdAt: 0,
+                verifiedAt: 0,
+                revokedAt: 0,
+                metadataURI: "",
+                name: "",
+                organization: "",
+                role: ""
+            });
         }
         return IdentityView({
             exists: true,

@@ -20,8 +20,21 @@ contract AssetNFT is ERC721 {
     mapping(bytes32 => address[]) public roleMembers;
 
     // --- Types ---
-    enum AssetType { Certificate, Document, Equipment, Device, License, Other }
-    enum AssetStatus { None, Active, Transferred, Retired, Lost }
+    enum AssetType {
+        Certificate,
+        Document,
+        Equipment,
+        Device,
+        License,
+        Other
+    }
+    enum AssetStatus {
+        None,
+        Active,
+        Transferred,
+        Retired,
+        Lost
+    }
 
     struct Asset {
         uint256 tokenId;
@@ -68,9 +81,21 @@ contract AssetNFT is ERC721 {
     error EnforcedPause();
 
     // --- Events ---
-    event AssetMinted(uint256 indexed tokenId, AssetType assetType, address indexed owner, address indexed assignee, string did, string metadataURI, uint48 timestamp);
-    event AssetAssigned(uint256 indexed tokenId, address indexed fromAssignee, address indexed toAssignee, uint48 timestamp);
-    event AssetTransferred(uint256 indexed tokenId, address indexed fromOwner, address indexed toOwner, uint48 timestamp);
+    event AssetMinted(
+        uint256 indexed tokenId,
+        AssetType assetType,
+        address indexed owner,
+        address indexed assignee,
+        string did,
+        string metadataURI,
+        uint48 timestamp
+    );
+    event AssetAssigned(
+        uint256 indexed tokenId, address indexed fromAssignee, address indexed toAssignee, uint48 timestamp
+    );
+    event AssetTransferred(
+        uint256 indexed tokenId, address indexed fromOwner, address indexed toOwner, uint48 timestamp
+    );
     event AssetStatusChanged(uint256 indexed tokenId, AssetStatus oldStatus, AssetStatus newStatus, uint48 timestamp);
     event AssetMetadataUpdated(uint256 indexed tokenId, string metadataURI, uint48 timestamp);
     event AssetRetired(uint256 indexed tokenId, address indexed by, uint48 timestamp);
@@ -83,6 +108,7 @@ contract AssetNFT is ERC721 {
 
     // --- Constructor ---
     constructor(address initialAdmin) ERC721("SIH Asset", "SASSET") {
+        if (initialAdmin == address(0)) revert ZeroAddress();
         _admin = initialAdmin;
         _grantRole(DEFAULT_ADMIN_ROLE, initialAdmin);
         _grantRole(ASSET_MANAGER_ROLE, initialAdmin);
@@ -157,17 +183,39 @@ contract AssetNFT is ERC721 {
     }
 
     // --- Pause ---
-    function pause() external onlyAdmin { paused = true; }
-    function unpause() external onlyAdmin { paused = false; }
+    function pause() external onlyAdmin {
+        paused = true;
+    }
+
+    function unpause() external onlyAdmin {
+        paused = false;
+    }
 
     // --- Minting ---
-    function mintAsset(AssetType assetType, address owner_, address assignee, string calldata did, string calldata metadataURI) external onlyRole(ASSET_MANAGER_ROLE) whenNotPaused returns (uint256) {
+    function mintAsset(
+        uint8 assetTypeValue,
+        address owner_,
+        address assignee,
+        string calldata did,
+        string calldata metadataURI
+    ) external onlyRole(ASSET_MANAGER_ROLE) whenNotPaused returns (uint256) {
         if (owner_ == address(0) || assignee == address(0)) revert ZeroAddress();
         if (bytes(metadataURI).length == 0) revert EmptyMetadataURI();
-        if (uint256(assetType) > uint256(AssetType.Other)) revert InvalidAssetType();
+        if (assetTypeValue > uint8(AssetType.Other)) revert InvalidAssetType();
+        AssetType assetType = AssetType(assetTypeValue);
 
         uint256 tokenId = tokenCounter++;
-        assets[tokenId] = Asset({tokenId: tokenId, assetType: assetType, owner: owner_, assignee: assignee, did: did, metadataURI: metadataURI, status: AssetStatus.Active, createdAt: uint48(block.timestamp), updatedAt: uint48(block.timestamp)});
+        assets[tokenId] = Asset({
+            tokenId: tokenId,
+            assetType: assetType,
+            owner: owner_,
+            assignee: assignee,
+            did: did,
+            metadataURI: metadataURI,
+            status: AssetStatus.Active,
+            createdAt: uint48(block.timestamp),
+            updatedAt: uint48(block.timestamp)
+        });
         ownerAssets[owner_].push(tokenId);
         assigneeAssets[assignee].push(tokenId);
         if (bytes(did).length > 0) didAssets[did].push(tokenId);
@@ -197,7 +245,9 @@ contract AssetNFT is ERC721 {
         if (asset.status == AssetStatus.None) revert AssetNotFound();
         if (newOwner == address(0)) revert ZeroAddress();
         if (asset.owner == newOwner) return;
-        if (msg.sender != asset.owner && msg.sender != asset.assignee && !checkRole(ASSET_MANAGER_ROLE, msg.sender)) revert NotOwnerOrManager();
+        if (msg.sender != asset.owner && msg.sender != asset.assignee && !checkRole(ASSET_MANAGER_ROLE, msg.sender)) {
+            revert NotOwnerOrManager();
+        }
         address oldOwner = asset.owner;
         asset.owner = newOwner;
         asset.updatedAt = uint48(block.timestamp);
@@ -225,9 +275,16 @@ contract AssetNFT is ERC721 {
     }
 
     function _validateStatusTransition(AssetStatus from, AssetStatus to) internal view {
-        if (from == AssetStatus.Active && to != AssetStatus.Transferred && to != AssetStatus.Retired && to != AssetStatus.Lost) revert InvalidStatusTransition();
-        if (from == AssetStatus.Transferred && to != AssetStatus.Active && to != AssetStatus.Retired) revert InvalidStatusTransition();
-        if (from == AssetStatus.Lost && to != AssetStatus.Active && to != AssetStatus.Retired) revert InvalidStatusTransition();
+        if (
+            from == AssetStatus.Active && to != AssetStatus.Transferred && to != AssetStatus.Retired
+                && to != AssetStatus.Lost
+        ) revert InvalidStatusTransition();
+        if (from == AssetStatus.Transferred && to != AssetStatus.Active && to != AssetStatus.Retired) {
+            revert InvalidStatusTransition();
+        }
+        if (from == AssetStatus.Lost && to != AssetStatus.Active && to != AssetStatus.Retired) {
+            revert InvalidStatusTransition();
+        }
         if (from == AssetStatus.Retired || from == AssetStatus.None) revert InvalidStatusTransition();
     }
 
@@ -252,7 +309,7 @@ contract AssetNFT is ERC721 {
         Asset storage asset = assets[tokenId];
         if (asset.status == AssetStatus.None) revert AssetNotFound();
         if (asset.status == AssetStatus.Retired) return;
-        this.updateStatus(tokenId, AssetStatus.Retired);
+        _updateStatus(asset, AssetStatus.Retired);
         emit AssetRetired(tokenId, msg.sender, uint48(block.timestamp));
     }
 
@@ -260,21 +317,70 @@ contract AssetNFT is ERC721 {
         Asset storage asset = assets[tokenId];
         if (asset.status == AssetStatus.None) revert AssetNotFound();
         if (asset.status == AssetStatus.Lost) return;
-        this.updateStatus(tokenId, AssetStatus.Lost);
+        _updateStatus(asset, AssetStatus.Lost);
         emit AssetReportedLost(tokenId, msg.sender, uint48(block.timestamp));
+    }
+
+    function _updateStatus(Asset storage asset, AssetStatus newStatus) internal {
+        if (asset.status == newStatus) return;
+        _validateStatusTransition(asset.status, newStatus);
+        AssetStatus oldStatus = asset.status;
+        asset.status = newStatus;
+        asset.updatedAt = uint48(block.timestamp);
+        emit AssetStatusChanged(asset.tokenId, oldStatus, newStatus, uint48(block.timestamp));
     }
 
     // --- Queries ---
     function getAsset(uint256 tokenId) external view returns (AssetView memory) {
         Asset storage asset = assets[tokenId];
-        if (asset.status == AssetStatus.None) return AssetView({exists:false, tokenId:0, assetType:AssetType.Other, owner:address(0), assignee:address(0), did:"", metadataURI:"", status:AssetStatus.None, createdAt:0, updatedAt:0});
-        return AssetView({exists:true, tokenId:asset.tokenId, assetType:asset.assetType, owner:asset.owner, assignee:asset.assignee, did:asset.did, metadataURI:asset.metadataURI, status:asset.status, createdAt:asset.createdAt, updatedAt:asset.updatedAt});
+        if (asset.status == AssetStatus.None) {
+            return AssetView({
+                exists: false,
+                tokenId: 0,
+                assetType: AssetType.Other,
+                owner: address(0),
+                assignee: address(0),
+                did: "",
+                metadataURI: "",
+                status: AssetStatus.None,
+                createdAt: 0,
+                updatedAt: 0
+            });
+        }
+        return AssetView({
+            exists: true,
+            tokenId: asset.tokenId,
+            assetType: asset.assetType,
+            owner: asset.owner,
+            assignee: asset.assignee,
+            did: asset.did,
+            metadataURI: asset.metadataURI,
+            status: asset.status,
+            createdAt: asset.createdAt,
+            updatedAt: asset.updatedAt
+        });
     }
-    function getOwnerAssets(address owner_) external view returns (uint256[] memory) { return ownerAssets[owner_]; }
-    function getAssigneeAssets(address assignee) external view returns (uint256[] memory) { return assigneeAssets[assignee]; }
-    function getDIDAssets(string calldata did) external view returns (uint256[] memory) { return didAssets[did]; }
-    function totalAssets() external view returns (uint256) { return tokenCounter; }
-    function isAssetManager() external view returns (bool) { return checkRole(ASSET_MANAGER_ROLE, msg.sender); }
+
+    function getOwnerAssets(address owner_) external view returns (uint256[] memory) {
+        return ownerAssets[owner_];
+    }
+
+    function getAssigneeAssets(address assignee) external view returns (uint256[] memory) {
+        return assigneeAssets[assignee];
+    }
+
+    function getDIDAssets(string calldata did) external view returns (uint256[] memory) {
+        return didAssets[did];
+    }
+
+    function totalAssets() external view returns (uint256) {
+        return tokenCounter;
+    }
+
+    function isAssetManager() external view returns (bool) {
+        return checkRole(ASSET_MANAGER_ROLE, msg.sender);
+    }
+
     function isOwnerOrAssignee(uint256 tokenId) external view returns (bool) {
         Asset storage asset = assets[tokenId];
         if (asset.status == AssetStatus.None) revert AssetNotFound();
@@ -284,10 +390,23 @@ contract AssetNFT is ERC721 {
     // --- Internal Helpers ---
     function _removeFromOwnerAssets(address owner_, uint256 tokenId) internal {
         uint256[] storage arr = ownerAssets[owner_];
-        for (uint256 i = 0; i < arr.length; i++) { if (arr[i] == tokenId) { arr[i] = arr[arr.length - 1]; arr.pop(); break; } }
+        for (uint256 i = 0; i < arr.length; i++) {
+            if (arr[i] == tokenId) {
+                arr[i] = arr[arr.length - 1];
+                arr.pop();
+                break;
+            }
+        }
     }
+
     function _removeFromAssigneeAssets(address assignee, uint256 tokenId) internal {
         uint256[] storage arr = assigneeAssets[assignee];
-        for (uint256 i = 0; i < arr.length; i++) { if (arr[i] == tokenId) { arr[i] = arr[arr.length - 1]; arr.pop(); break; } }
+        for (uint256 i = 0; i < arr.length; i++) {
+            if (arr[i] == tokenId) {
+                arr[i] = arr[arr.length - 1];
+                arr.pop();
+                break;
+            }
+        }
     }
 }
